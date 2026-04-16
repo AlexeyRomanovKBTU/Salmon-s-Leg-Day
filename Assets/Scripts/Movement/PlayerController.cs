@@ -4,11 +4,15 @@ public class PlayerController : MonoBehaviour
 {
     [Header("References")]
     public Rigidbody2D rb;
-    public GameObject middleLeftLeg, middleRightLeg;
+    public GameObject leftLegFeet, rightLegFeet;
     public Animator anim;
     public PlayerInputHandler input;
     public Balance balance;
     public Transform groundCheck;
+
+    [Header("Mouse Interaction")]
+    public TargetJoint2D leftTargetJoint;
+    public TargetJoint2D rightTargetJoint;
 
     [Header("Settings")]
     public float speedForce = 10f;
@@ -20,6 +24,7 @@ public class PlayerController : MonoBehaviour
     public LayerMask groundLayer;
     public float coyoteTime = 0.15f;
     public float ragdollWait = 3f;
+    public float legGroundDist = 0.2f; // Distance for leg ground check
 
     [Header("Visuals")]
     public GameObject jumpArrowPivot;
@@ -45,7 +50,6 @@ public class PlayerController : MonoBehaviour
     {
         isGrounded = Physics2D.OverlapCircle(groundCheck.position, groundRadius, groundLayer);
         
-        // Coyote Time Logic
         if (isGrounded) coyoteCounter = coyoteTime;
         else coyoteCounter -= Time.deltaTime;
 
@@ -58,5 +62,26 @@ public class PlayerController : MonoBehaviour
         _currentState.ExitState();
         newState.EnterState();
         _currentState = newState;
+    }
+
+    public Vector2 GetMouseWorldPos() 
+    {
+        Vector3 mousePoint = new Vector3(input.MousePosition.x, input.MousePosition.y, Mathf.Abs(Camera.main.transform.position.z));
+        return Camera.main.ScreenToWorldPoint(mousePoint);
+    }
+
+    public bool IsLegGrounded(GameObject leg)
+    {
+        // Fires a tiny ray down from the foot to see if it's standing on the ground layer
+        RaycastHit2D hit = Physics2D.Raycast(leg.transform.position, Vector2.down, legGroundDist, groundLayer);
+        return hit.collider != null;
+    }
+
+    public void SetAllLegsDynamic()
+    {
+        leftLegFeet.GetComponent<Rigidbody2D>().bodyType = RigidbodyType2D.Dynamic;
+        rightLegFeet.GetComponent<Rigidbody2D>().bodyType = RigidbodyType2D.Dynamic;
+        leftTargetJoint.enabled = false;
+        rightTargetJoint.enabled = false;
     }
 }

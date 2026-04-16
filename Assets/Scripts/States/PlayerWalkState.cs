@@ -2,68 +2,96 @@ using UnityEngine;
 
 public class PlayerWalkState : PlayerBaseState
 {
-    private float _stepTimer;
-    private bool _firstStepDone;
+    private GameObject _activeLeg;
+    private TargetJoint2D _activeJoint;
+    private Rigidbody2D _activeRB;
 
     public PlayerWalkState(PlayerController ctx, PlayerStateFactory factory) : base(ctx, factory) {}
-    
+
     public override void EnterState() 
     {
-        _stepTimer = Ctx.stepWait;
-        _firstStepDone = false;
-
-        PerformStep(true);
+        Debug.Log("Entered Walk State");
     }
 
     public override void UpdateState() 
     {
-        _stepTimer -= Time.deltaTime;
-
-        if (_stepTimer <= 0 && !_firstStepDone)
+        // 1. Check if we are trying to grab and why it might fail
+        if (Ctx.input.IsClicking && _activeLeg == null) 
         {
-            PerformStep(false);
-            _firstStepDone = true;
+            TryGrabLeg();
+        }
+
+        if (Ctx.input.IsClicking && _activeJoint != null)
+        {
+            _activeJoint.target = Ctx.GetMouseWorldPos();
+        }
+
+        // 2. Check the release logic
+        if (!Ctx.input.IsClicking && _activeLeg != null)
+        {
+            Debug.Log($"Releasing leg: {_activeLeg.name}. Switching to Idle.");
+            // Resetting local references before switching state is safer
+            _activeLeg = null;
+            _activeJoint = null;
+            _activeRB = null;
+            
+            Ctx.SwitchState(Factory.Idle());
         }
     }
 
-    public override void ExitState() {}
-
-    private void PerformStep(bool isFirstStep)
+    private void TryGrabLeg()
     {
-        float moveX = Ctx.input.MoveInput.x;
-        
-        Ctx.anim.Play(moveX > 0 ? "Walk_Right" : "Walk_Left");
+        Vector2 mousePos = Ctx.GetMouseWorldPos();
+        RaycastHit2D hit = Physics2D.Raycast(mousePos, Vector2.zero);
 
-        GameObject legObj = (moveX > 0) ? 
-            (isFirstStep ? Ctx.middleLeftLeg : Ctx.middleRightLeg) : 
-            (isFirstStep ? Ctx.middleRightLeg : Ctx.middleLeftLeg);
-
-        if (legObj != null)
+        if (hit.collider != null)
         {
-            Rigidbody2D legRB = legObj.GetComponent<Rigidbody2D>();
-            
-            legRB.AddForce(new Vector2(moveX * Ctx.speedForce, 0));
-            
-            if (AudioManager.Instance != null)
-                AudioManager.Instance.PlaySlapsSFX(AudioManager.Instance.slaps);
+            GameObject hitObj = hit.collider.gameObject;
+
+            if (hitObj == Ctx.leftLegFeet || hitObj == Ctx.rightLegFeet)
+            {
+                GameObject otherLeg = (hitObj == Ctx.leftLegFeet) ? Ctx.rightLegFeet : Ctx.leftLegFeet;
+                bool isOtherGrounded = Ctx.IsLegGrounded(otherLeg);
+
+                Debug.Log($"Attempting to grab: {hitObj.name}. Other leg ({otherLeg.name}) Grounded: {isOtherGrounded}");
+
+                if (isOtherGrounded)
+                {
+                    _activeLeg = hitObj;
+                    _activeJoint = (hitObj == Ctx.leftLegFeet) ? Ctx.leftTargetJoint : Ctx.rightTargetJoint;
+                    _activeRB = _activeLeg.GetComponent<Rigidbody2D>();
+
+                    Debug.Log($"Grab Successful! Active Leg: {_activeLeg.name}");
+
+                    // Anchor the pivot leg
+                    Rigidbody2D otherRB = otherLeg.GetComponent<Rigidbody2D>();
+                    otherRB.bodyType = RigidbodyType2D.Kinematic;
+                    otherRB.linearVelocity = Vector2.zero;
+
+                    // Enable dragging for active leg
+                    _activeRB.bodyType = RigidbodyType2D.Dynamic;
+                    _activeJoint.enabled = true;
+                }
+            }
         }
+        else 
+        {
+             // Log this if you're clicking but nothing is happening
+             Debug.Log("Raycast hit nothing at: " + mousePos);
+        }
+    }
+
+    public override void ExitState() 
+    {
+        Debug.Log("Exiting Walk State");
+        Ctx.SetAllLegsDynamic();
+        // Crucial: Clear references when leaving the state
+        _activeLeg = null;
+        _activeJoint = null;
     }
 
     public override void CheckSwitchStates()
     {
-        if (Ctx.input.MoveInput.x == 0 && _firstStepDone && _stepTimer <= -0.1f) 
-        {
-            Ctx.SwitchState(Factory.Idle());
-        }
-        
-        if (Ctx.input.IsHoldingJump) 
-        {
-            Ctx.SwitchState(Factory.Jump());
-        }
-
-        if (_firstStepDone && _stepTimer <= -Ctx.stepWait)
-        {
-            EnterState();
-        }
+        if (!Ctx.input.IsClicking && _activeLeg == null) Ctx.SwitchState(Factory.Idle());
     }
 }

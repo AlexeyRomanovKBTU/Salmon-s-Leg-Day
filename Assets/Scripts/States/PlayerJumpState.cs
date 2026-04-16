@@ -56,6 +56,8 @@ public class PlayerJumpState : PlayerBaseState
 
         if (Ctx.jumpArrowPivot != null)
             Ctx.jumpArrowPivot.SetActive(false);
+
+        Ctx.anim.Play("Idle");
     }
 
     public override void CheckSwitchStates()
