@@ -8,12 +8,13 @@ public class PlayerInputHandler : MonoBehaviour
     public bool RagdollTriggered { get; private set; }
     public Vector2 MousePosition { get; private set; }
     public bool IsClicking { get; private set; }
-    
+
     [SerializeField] private float _jumpBufferTime = 0.2f;
     private float _jumpBufferCounter;
     public bool JumpBuffered => _jumpBufferCounter > 0;
 
-    public void OnPointerPosition(InputAction.CallbackContext context) => MousePosition = context.ReadValue<Vector2>();
+    public void OnPointerPosition(InputAction.CallbackContext context)
+        => MousePosition = context.ReadValue<Vector2>();
 
     public void OnGrab(InputAction.CallbackContext context)
     {
@@ -21,7 +22,8 @@ public class PlayerInputHandler : MonoBehaviour
         if (context.canceled) IsClicking = false;
     }
 
-    public void OnMove(InputAction.CallbackContext context) => MoveInput = context.ReadValue<Vector2>();
+    public void OnMove(InputAction.CallbackContext context)
+        => MoveInput = context.ReadValue<Vector2>();
 
     public void OnJump(InputAction.CallbackContext context)
     {
@@ -30,10 +32,17 @@ public class PlayerInputHandler : MonoBehaviour
         if (context.canceled) _jumpBufferCounter = 0;
     }
 
-    public void OnRagdoll(InputAction.CallbackContext context) { if (context.started) RagdollTriggered = true; }
+    public void OnRagdoll(InputAction.CallbackContext context)
+    {
+        if (context.started) RagdollTriggered = true;
+    }
 
-    private void Update() { if (_jumpBufferCounter > 0) _jumpBufferCounter -= Time.deltaTime; }
+    private void Update()
+    {
+        if (_jumpBufferCounter > 0)
+            _jumpBufferCounter -= Time.deltaTime;
+    }
 
-    public void UseJumpBuffer() => _jumpBufferCounter = 0;
-    public void ResetRagdollTrigger() => RagdollTriggered = false;
+    public void UseJumpBuffer()        => _jumpBufferCounter = 0;
+    public void ResetRagdollTrigger()  => RagdollTriggered = false;
 }

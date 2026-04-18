@@ -2,12 +2,16 @@ using UnityEngine;
 
 public class PlayerJumpState : PlayerBaseState
 {
+    private bool _shouldJump;
+
     public PlayerJumpState(PlayerController ctx, PlayerStateFactory factory) : base(ctx, factory) {}
 
     public override void EnterState()
     {
+        _shouldJump = false;
         Ctx.anim.Play("Sit");
         Ctx.currentJumpForce = Ctx.initialJumpForce;
+        Ctx.jumpAimAngle = 0f;
 
         if (Ctx.jumpArrowPivot != null)
         {
@@ -22,7 +26,8 @@ public class PlayerJumpState : PlayerBaseState
             Ctx.currentJumpForce += Ctx.jumpForceInc * Time.deltaTime;
 
         float moveX = Ctx.input.MoveInput.x;
-        Ctx.balance.targetRotation = Mathf.Clamp(Ctx.balance.targetRotation + (-moveX * Time.deltaTime * 60f), -45f, 45f);
+        Ctx.jumpAimAngle = Mathf.Clamp(
+            Ctx.jumpAimAngle + (-moveX * Time.deltaTime * 60f), -45f, 45f);
 
         UpdateArrowVisuals();
     }
@@ -31,28 +36,29 @@ public class PlayerJumpState : PlayerBaseState
     {
         if (Ctx.jumpArrowPivot == null) return;
 
-        float visualAngle = Ctx.balance.targetRotation; 
-        Ctx.jumpArrowPivot.transform.rotation = Quaternion.Euler(0, 0, visualAngle);
+        Ctx.jumpArrowPivot.transform.rotation =
+            Quaternion.Euler(0, 0, Ctx.jumpAimAngle);
 
-        float chargePercent = (Ctx.currentJumpForce - Ctx.initialJumpForce) / (Ctx.maxJumpForce - Ctx.initialJumpForce);
-        chargePercent = Mathf.Clamp01(chargePercent);
+        float chargePercent = Mathf.InverseLerp(
+            Ctx.initialJumpForce, Ctx.maxJumpForce, Ctx.currentJumpForce);
 
-        float visualY = Mathf.Lerp(0.1f, 1.0f, chargePercent);
-        Ctx.jumpArrowPivot.transform.localScale = new Vector3(1f, visualY, 1f);
-        
+        Ctx.jumpArrowPivot.transform.localScale =
+            new Vector3(1f, Mathf.Lerp(0.1f, 1f, chargePercent), 1f);
+
         if (Ctx.arrowSprite != null)
-        {
             Ctx.arrowSprite.color = Color.Lerp(Color.white, Color.red, chargePercent);
-        }
     }
 
     public override void ExitState()
     {
-        float angle = (Ctx.balance.targetRotation + 90f) * Mathf.Deg2Rad;
-        Vector2 dir = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle));
-        Ctx.rb.AddForce(dir * Ctx.currentJumpForce);
-        
-        Ctx.balance.targetRotation = 0;
+        if (_shouldJump)
+        {
+            float angle = (Ctx.jumpAimAngle + 90f) * Mathf.Deg2Rad;
+            Vector2 dir = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle));
+            Ctx.rb.AddForce(dir * Ctx.currentJumpForce);
+        }
+
+        Ctx.jumpAimAngle = 0f;
 
         if (Ctx.jumpArrowPivot != null)
             Ctx.jumpArrowPivot.SetActive(false);
@@ -62,8 +68,15 @@ public class PlayerJumpState : PlayerBaseState
 
     public override void CheckSwitchStates()
     {
+        if (Ctx.input.RagdollTriggered)
+        {
+            Ctx.SwitchState(Factory.Ragdoll());
+            return;
+        }
+
         if (!Ctx.input.IsHoldingJump)
         {
+            _shouldJump = true;
             Ctx.SwitchState(Factory.Idle());
         }
     }
