@@ -34,7 +34,6 @@ public class PlayerRagdollState : PlayerBaseState
 
     public override void ExitState()
     {
-        // Re-enable IK — legs return to kinematic and snap back under IK control
         Ctx.ExitRagdoll();
     }
 

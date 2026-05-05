@@ -2,16 +2,23 @@ using UnityEngine;
 
 public class PlayerWalkState : PlayerBaseState
 {
-    private Transform _activeTarget;   // IK target being moved
-    private Transform _anchorTarget;   // IK target staying still
-    private Transform _activeFootBone; // actual foot bone for reach clamping
+    private Transform _activeTarget;
+    private Transform _anchorTarget;
+    private Transform _activeFootBone;
     private Vector2   _desiredTargetPos;
+    private Vector2   _footVelocity;
+    private Vector2   _anchorWorldPos;
+    private float     _maxBodyDist;
+    private Vector2   _footGrabPos;
 
     public PlayerWalkState(PlayerController ctx, PlayerStateFactory factory) : base(ctx, factory) {}
 
     public override void EnterState()
     {
-        Debug.Log("Entered Walk State");
+        Ctx.ikTargetLeft.position  = Ctx.leftFootTransform.position;
+        Ctx.ikTargetRight.position = Ctx.rightFootTransform.position;
+        Ctx.SetLegsPhysicsMode(RigidbodyType2D.Kinematic);
+        Ctx.EnableIK(true);
     }
 
     public override void UpdateState()
@@ -30,95 +37,99 @@ public class PlayerWalkState : PlayerBaseState
     {
         if (_activeTarget == null) return;
 
+        MoveFoot();
+        PullBody();
+    }
+
+    private void MoveFoot()
+    {
         Vector2 currentPos = _activeTarget.position;
         Vector2 moveDir    = _desiredTargetPos - currentPos;
         float   moveDist   = moveDir.magnitude;
 
-        if (moveDist < 0.001f) return;
+        Vector2 safeTarget = _desiredTargetPos;
+        if (moveDist > 0.001f)
+        {
+            RaycastHit2D hit = Physics2D.CircleCast(
+                currentPos, Ctx.ikTargetRadius,
+                moveDir.normalized, moveDist, Ctx.groundLayer);
 
-        // CircleCast toward desired position — stops target at walls/ground
-        // so the foot can never be dragged through solid objects
-        RaycastHit2D hit = Physics2D.CircleCast(
-            currentPos,
-            Ctx.ikTargetRadius,
-            moveDir.normalized,
-            moveDist,
-            Ctx.groundLayer);
+            if (hit.collider != null)
+            {
+                if (hit.distance > 0f)
+                    safeTarget = hit.centroid;
+                else if (Vector2.Dot(moveDir.normalized, hit.normal) < 0f)
+                    safeTarget = currentPos;
+            }
+        }
 
-        Vector2 safeTarget = hit.collider != null ? hit.centroid : _desiredTargetPos;
+        _activeTarget.position = Vector2.SmoothDamp(
+            currentPos, safeTarget, ref _footVelocity,
+            Ctx.footSmoothTime, Ctx.ikTargetSpeed);
+    }
 
-        _activeTarget.position = Vector2.MoveTowards(
-            currentPos,
-            safeTarget,
-            Ctx.ikTargetSpeed * Time.fixedDeltaTime);
+    private void PullBody()
+    {
+        Vector2 toFoot = _desiredTargetPos - (Vector2)Ctx.torsoRootRB.position;
+        Ctx.torsoRootRB.AddForce(toFoot * Ctx.bodyLeanForce);
     }
 
     private void TryGrabFoot()
     {
         Vector2 mousePos = Ctx.GetMouseWorldPos();
+        float   grab     = Ctx.footGrabRadius;
 
-        // Use OverlapPoint instead of Raycast — more reliable for clicking
-        // on kinematic RB colliders that may not respond to raycasts
-        Collider2D col = Physics2D.OverlapPoint(mousePos);
+        float distLeft  = Vector2.Distance(mousePos, (Vector2)Ctx.leftFootCollider.bounds.center);
+        float distRight = Vector2.Distance(mousePos, (Vector2)Ctx.rightFootCollider.bounds.center);
 
-        if (col == null)
+        bool hitLeft  = distLeft  <= grab;
+        bool hitRight = distRight <= grab;
+
+        if (!hitLeft && !hitRight) return;
+
+        if (hitLeft && hitRight)
         {
-            Debug.Log("No collider at mouse position.");
-            return;
-        }
-
-        // The collider may be on the flat sprite OR the bone — check both.
-        // Ctx.leftFootCollider / rightFootCollider are the actual collider
-        // references set in PlayerController, so we compare against those.
-        bool hitLeft  = col == Ctx.leftFootCollider;
-        bool hitRight = col == Ctx.rightFootCollider;
-
-        if (!hitLeft && !hitRight)
-        {
-            Debug.Log($"Clicked {col.gameObject.name} — not a foot.");
-            return;
+            if (distLeft <= distRight) hitRight = false;
+            else                       hitLeft  = false;
         }
 
         Transform otherFoot = hitLeft ? Ctx.rightFootTransform : Ctx.leftFootTransform;
+        if (!Ctx.IsLegGrounded(otherFoot)) return;
 
-        if (!Ctx.IsLegGrounded(otherFoot))
-        {
-            Debug.Log("Grab blocked: anchor foot not grounded.");
-            return;
-        }
-
-        _activeTarget    = hitLeft ? Ctx.ikTargetLeft      : Ctx.ikTargetRight;
-        _anchorTarget    = hitLeft ? Ctx.ikTargetRight     : Ctx.ikTargetLeft;
-        _activeFootBone  = hitLeft ? Ctx.leftFootTransform : Ctx.rightFootTransform;
+        _activeTarget     = hitLeft ? Ctx.ikTargetLeft      : Ctx.ikTargetRight;
+        _anchorTarget     = hitLeft ? Ctx.ikTargetRight     : Ctx.ikTargetLeft;
+        _activeFootBone   = hitLeft ? Ctx.leftFootTransform : Ctx.rightFootTransform;
         _desiredTargetPos = _activeTarget.position;
-
-        Debug.Log($"Grabbed {(hitLeft ? "left" : "right")} foot.");
+        _footGrabPos      = _activeTarget.position;
+        _footVelocity     = Vector2.zero;
+        _anchorWorldPos   = _anchorTarget.position;
+        _maxBodyDist      = Vector2.Distance(Ctx.torsoRootRB.position, _anchorTarget.position);
     }
 
     private void UpdateDesiredPosition()
     {
-        Vector2 mousePos = Ctx.GetMouseWorldPos();
-
-        // Clamp reach from the actual foot bone position, not the IK target.
-        // The IK target may lag behind the foot, so clamping from the target
-        // position would give an incorrect reach radius.
-        Vector2 footPos = _activeFootBone.position;
-        Vector2 delta   = mousePos - footPos;
-
-        if (delta.magnitude > Ctx.maxLegReach)
-            mousePos = footPos + delta.normalized * Ctx.maxLegReach;
-
-        _desiredTargetPos = mousePos;
+        _desiredTargetPos = Ctx.GetMouseWorldPos();
     }
 
     private void PlantFoot()
     {
-        // Freeze desired pos at current target position — foot stays planted
-        _desiredTargetPos = _activeTarget.position;
-        _activeTarget     = null;
-        _anchorTarget     = null;
-        _activeFootBone   = null;
-        Debug.Log("Foot planted.");
+        if (_activeTarget != null)
+        {
+            // Land on the ground beneath the current IK position, not the raw mouse position
+            Vector2 footPos = _activeTarget.position;
+            RaycastHit2D hit = Physics2D.Raycast(footPos + Vector2.up * 0.5f, Vector2.down, 2f, Ctx.groundLayer);
+            Vector2 plantPos = hit.collider != null ? hit.point : _desiredTargetPos;
+            _activeTarget.position = plantPos;
+
+            Vector2 step = new Vector2(plantPos.x - _footGrabPos.x, 0f);
+            Ctx.torsoRootRB.AddForce(step * Ctx.plantImpulse, ForceMode2D.Impulse);
+        }
+        _activeTarget   = null;
+        _anchorTarget   = null;
+        _activeFootBone = null;
+        _footVelocity   = Vector2.zero;
+        _anchorWorldPos = Vector2.zero;
+        _maxBodyDist    = 0f;
     }
 
     public override void ExitState()
@@ -126,7 +137,9 @@ public class PlayerWalkState : PlayerBaseState
         _activeTarget   = null;
         _anchorTarget   = null;
         _activeFootBone = null;
-        Debug.Log("Exited Walk State");
+        _footVelocity   = Vector2.zero;
+        _anchorWorldPos = Vector2.zero;
+        _maxBodyDist    = 0f;
     }
 
     public override void CheckSwitchStates()

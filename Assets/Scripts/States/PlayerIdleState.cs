@@ -6,7 +6,8 @@ public class PlayerIdleState : PlayerBaseState
 
     public override void EnterState()
     {
-        // IK stays enabled in idle — legs hold their last planted position
+        Ctx.EnableIK(true);
+        Ctx.SetLegsPhysicsMode(RigidbodyType2D.Kinematic);
     }
 
     public override void UpdateState() { }

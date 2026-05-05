@@ -7,9 +7,6 @@ public class PlayerController : MonoBehaviour
     public Rigidbody2D rb;
     public Animator anim;
     public PlayerInputHandler input;
-    public Balance balance;
-    public Balance upperBodyBalance;
-    public Balance headBalance;
     public Transform groundCheck;
 
     [Header("IK")]
@@ -43,13 +40,23 @@ public class PlayerController : MonoBehaviour
     public float jumpForceInc = 1500f;
 
     [Header("Walk Settings")]
-    [Tooltip("How fast the IK target moves toward the mouse in world units per second")]
+    [Tooltip("Max speed cap for foot target movement (world units/sec)")]
     public float ikTargetSpeed = 8f;
-    [Tooltip("Max distance the IK target can be from the foot's current position")]
-    public float maxLegReach = 2f;
+    [Tooltip("Time in seconds for the foot to smoothly reach its target — lower = snappier")]
+    public float footSmoothTime = 0.12f;
     [Tooltip("Radius of the CircleCast used to stop the IK target at obstacles. " +
              "Match this to the radius of your foot CircleCollider2D.")]
     public float ikTargetRadius = 0.1f;
+    [Tooltip("How high the foot lifts off the ground while being dragged")]
+    public float footLiftHeight = 0.4f;
+    [Tooltip("World-space grab radius around each foot — increase to make feet easier to click")]
+    public float footGrabRadius = 0.4f;
+    [Tooltip("Horizontal force pulling the torso toward the dragged foot")]
+    public float bodyLeanForce = 8f;
+    [Tooltip("Force pushing the torso back when it drifts further than one leg-length from the anchor foot")]
+    public float bodyAnchorForce = 12f;
+    [Tooltip("Impulse applied to the torso when a foot is planted — scales with step distance")]
+    public float plantImpulse = 2f;
 
     [Header("Ragdoll Settings")]
     public float ragdollWait = 3f;
@@ -57,7 +64,6 @@ public class PlayerController : MonoBehaviour
     [Header("Visuals")]
     public GameObject jumpArrowPivot;
     public SpriteRenderer arrowSprite;
-    public Balance bodyBalance;
 
     [HideInInspector] public float currentJumpForce;
     [HideInInspector] public float jumpAimAngle;
@@ -71,6 +77,12 @@ public class PlayerController : MonoBehaviour
 
     private void Awake()
     {
+        SetBodyBonesGravity(0f);
+        if (torsoRootRB != null)
+        {
+            torsoRootRB.linearDamping  = 3f;
+            torsoRootRB.angularDamping = 3f;
+        }
         _states = new PlayerStateFactory(this);
         _currentState = _states.Idle();
         _currentState.EnterState();
@@ -82,10 +94,6 @@ public class PlayerController : MonoBehaviour
 
         if (isGrounded) coyoteCounter = coyoteTime;
         else coyoteCounter -= Time.deltaTime;
-
-        if (balance != null)            balance.isGrounded      = isGrounded;
-        if (upperBodyBalance != null) upperBodyBalance.isGrounded = isGrounded;
-        if (headBalance != null)      headBalance.isGrounded      = isGrounded;
 
         _currentState.UpdateState();
         _currentState.CheckSwitchStates();
@@ -120,34 +128,48 @@ public class PlayerController : MonoBehaviour
         return hit.collider != null;
     }
 
-    // ── IK helpers ───────────────────────────────────────────────────────────
-
     public void EnableIK(bool enabled)
     {
         if (ikManager != null)
             ikManager.enabled = enabled;
     }
 
-    // ── Ragdoll helpers ───────────────────────────────────────────────────────
-
-    // Switch all leg bones between Kinematic (IK mode) and Dynamic (ragdoll mode)
     public void SetLegsPhysicsMode(RigidbodyType2D bodyType)
     {
         leftFootRB.bodyType  = bodyType;
         rightFootRB.bodyType = bodyType;
     }
 
-    // Full ragdoll: disable IK, set legs dynamic so everything flops
+    public void SetBodyBonesGravity(float scale)
+    {
+        if (torsoRootRB != null)  torsoRootRB.gravityScale  = scale;
+        if (lowerBodyRB != null)  lowerBodyRB.gravityScale  = scale;
+        if (upperBodyRB != null)  upperBodyRB.gravityScale  = scale;
+        if (headRB != null)       headRB.gravityScale       = scale;
+    }
+
     public void EnterRagdoll()
     {
         EnableIK(false);
         SetLegsPhysicsMode(RigidbodyType2D.Dynamic);
+        SetBodyBonesGravity(1f);
     }
 
-    // Recover: re-enable IK, set legs back to kinematic
     public void ExitRagdoll()
     {
         SetLegsPhysicsMode(RigidbodyType2D.Kinematic);
         EnableIK(true);
+        SetBodyBonesGravity(0f);
+        ZeroBodyVelocities();
+    }
+
+    private void ZeroBodyVelocities()
+    {
+        foreach (var rb in new[] { torsoRootRB, lowerBodyRB, upperBodyRB, headRB })
+        {
+            if (rb == null) continue;
+            rb.linearVelocity  = Vector2.zero;
+            rb.angularVelocity = 0f;
+        }
     }
 }
