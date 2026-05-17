@@ -6,8 +6,8 @@ public class PlayerIdleState : PlayerBaseState
 
     public override void EnterState()
     {
-        Ctx.EnableIK(true);
-        Ctx.SetLegsPhysicsMode(RigidbodyType2D.Kinematic);
+        Ctx.anim.Play("Idle");
+        Ctx.ResetAllLegBalance();
     }
 
     public override void UpdateState() { }
@@ -18,6 +18,7 @@ public class PlayerIdleState : PlayerBaseState
     {
         if (Ctx.input.RagdollTriggered)
         {
+            Ctx.input.ResetRagdollTrigger();
             Ctx.SwitchState(Factory.Ragdoll());
             return;
         }
@@ -30,7 +31,7 @@ public class PlayerIdleState : PlayerBaseState
             return;
         }
 
-        if (Ctx.input.IsClicking)
+        if (Ctx.input.IsClicking && Ctx.isGrounded)
             Ctx.SwitchState(Factory.Walk());
     }
 }

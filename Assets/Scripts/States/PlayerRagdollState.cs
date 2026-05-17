@@ -3,17 +3,12 @@ using UnityEngine;
 public class PlayerRagdollState : PlayerBaseState
 {
     private float _settleTimer;
-    private bool _hasHitGround;
 
     public PlayerRagdollState(PlayerController ctx, PlayerStateFactory factory) : base(ctx, factory) {}
 
     public override void EnterState()
     {
-        _hasHitGround = false;
         _settleTimer = Ctx.ragdollWait;
-
-        // Disable IK — legs go fully dynamic and flop with everything else
-        Ctx.EnterRagdoll();
 
         Ctx.anim.Play("Ragdoll");
 
@@ -25,21 +20,22 @@ public class PlayerRagdollState : PlayerBaseState
 
     public override void UpdateState()
     {
-        if (Ctx.isGrounded)
-            _hasHitGround = true;
-
-        if (_hasHitGround)
-            _settleTimer -= Time.deltaTime;
+        _settleTimer -= Time.deltaTime;
+        Debug.Log($"[Ragdoll] timer: {_settleTimer:F2}");
     }
 
     public override void ExitState()
     {
+        Debug.Log("[Ragdoll] ExitState called");
         Ctx.ExitRagdoll();
     }
 
     public override void CheckSwitchStates()
     {
-        if (_hasHitGround && _settleTimer <= 0)
+        if (_settleTimer <= 0)
+        {
+            Debug.Log("[Ragdoll] Switching to Idle");
             Ctx.SwitchState(Factory.Idle());
+        }
     }
 }

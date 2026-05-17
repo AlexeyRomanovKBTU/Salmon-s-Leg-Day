@@ -6575,9 +6575,6 @@ MonoBehaviour:
   anim: {fileID: 336329742}
   input: {fileID: 336329737}
   groundCheck: {fileID: 1624738755}
-  ikManager: {fileID: 336329736}
-  ikTargetLeft: {fileID: 524898111}
-  ikTargetRight: {fileID: 337390651}
   leftFootRB: {fileID: 845801875}
   rightFootRB: {fileID: 499794906}
   leftFootTransform: {fileID: 845801878}
@@ -6588,26 +6585,33 @@ MonoBehaviour:
   lowerBodyRB: {fileID: 2014448251}
   upperBodyRB: {fileID: 2041944887}
   headRB: {fileID: 1844251707}
-  groundRadius: 0.4
+  groundRadius: 0.2
   groundLayer:
     serializedVersion: 2
     m_Bits: 8
   coyoteTime: 0.15
-  legGroundDist: 0.2
   initialJumpForce: 1000
   maxJumpForce: 3500
   jumpForceInc: 1500
-  ikTargetSpeed: 8
-  footSmoothTime: 0.12
-  ikTargetRadius: 0.1
-  footLiftHeight: 0.1
+  footForce: 20
+  footDamping: 5
   footGrabRadius: 0.4
-  bodyLeanForce: 40
-  bodyAnchorForce: 12
-  plantImpulse: 2
+  footMaxMouseSpeed: 8
+  footMaxDragSpeed: 8
+  footMaxDragDistance: 2.5
+  leftLeg1: {fileID: 0}
+  leftLeg2: {fileID: 0}
+  rightLeg1: {fileID: 0}
+  rightLeg2: {fileID: 0}
+  bodyLinearDamping: 1
+  bodyAngularDamping: 1
   ragdollWait: 3
   jumpArrowPivot: {fileID: 1277869947}
   arrowSprite: {fileID: 1515798302}
+  leftLeg1Bal: {fileID: 0}
+  leftLeg2Bal: {fileID: 0}
+  rightLeg1Bal: {fileID: 0}
+  rightLeg2Bal: {fileID: 0}
   currentJumpForce: 0
   jumpAimAngle: 0
   isGrounded: 0
@@ -6651,18 +6655,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 32f57030e3a252445859e998b3264bee, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Balance
-  rootRB: {fileID: 1013099316}
-  leftFoot: {fileID: 845801878}
-  rightFoot: {fileID: 499794909}
-  standHeight: 2.5
-  uprightForce: 15
-  dampingForce: 5
-  rotationForce: 5
-  maxForce: 30
-  legGroundDist: 0.3
-  groundLayer:
-    serializedVersion: 2
-    m_Bits: 8
+  targetRotation: 0
+  rb: {fileID: 0}
+  force: 0
 --- !u!95 &336329742
 Animator:
   serializedVersion: 7
@@ -6741,7 +6736,7 @@ Transform:
   m_GameObject: {fileID: 344558584}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -0.03, y: -0.1375, z: 0.09}
+  m_LocalPosition: {x: 0, y: -0.524, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -8859,30 +8854,6 @@ Rigidbody2D:
   m_SleepingMode: 1
   m_CollisionDetection: 0
   m_Constraints: 0
---- !u!114 &482761665
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 482761656}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 32f57030e3a252445859e998b3264bee, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  rootRB: {fileID: 0}
-  leftFoot: {fileID: 0}
-  rightFoot: {fileID: 0}
-  standHeight: 2.5
-  uprightForce: 15
-  dampingForce: 10
-  rotationForce: 5
-  maxForce: 30
-  legGroundDist: 0.3
-  groundLayer:
-    serializedVersion: 2
-    m_Bits: 0
 --- !u!60 &482761672
 PolygonCollider2D:
   m_ObjectHideFlags: 0
@@ -8951,6 +8922,26 @@ PolygonCollider2D:
       - {x: 0.07037037, y: -0.11018518}
       - {x: 0.07037037, y: -0.047222223}
   m_UseDelaunayMesh: 0
+--- !u!4 &482761674 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -7515041565931353150, guid: b11b1647264e9d84e8e9cd32a622579b, type: 3}
+  m_PrefabInstance: {fileID: 1990704995}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &482761675
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 482761656}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 32f57030e3a252445859e998b3264bee, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Balance
+  targetRotation: 180
+  rb: {fileID: 482761661}
+  force: 45
 --- !u!1 &489495597
 GameObject:
   m_ObjectHideFlags: 0
@@ -9880,7 +9871,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e7a862b484e542c46879753e4c8a66f4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  target: {fileID: 1013099321}
+  target: {fileID: 1144552189}
   smoothSpeed: 0.125
   offset: {x: 0.5, y: 0.3, z: 0}
 --- !u!1 &522205139
@@ -10388,30 +10379,6 @@ Rigidbody2D:
   m_SleepingMode: 1
   m_CollisionDetection: 0
   m_Constraints: 0
---- !u!114 &637318623
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 637318614}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 32f57030e3a252445859e998b3264bee, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  rootRB: {fileID: 0}
-  leftFoot: {fileID: 0}
-  rightFoot: {fileID: 0}
-  standHeight: 2.5
-  uprightForce: 15
-  dampingForce: 10
-  rotationForce: 5
-  maxForce: 30
-  legGroundDist: 0.3
-  groundLayer:
-    serializedVersion: 2
-    m_Bits: 0
 --- !u!60 &637318633
 PolygonCollider2D:
   m_ObjectHideFlags: 0
@@ -10469,26 +10436,26 @@ PolygonCollider2D:
       - {x: 0.07685185, y: 0.046296295}
       - {x: 0.074999996, y: 0.048148148}
   m_UseDelaunayMesh: 0
---- !u!257 &637318636
-TargetJoint2D:
+--- !u!4 &637318638 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 487263968743898161, guid: b11b1647264e9d84e8e9cd32a622579b, type: 3}
+  m_PrefabInstance: {fileID: 1990704995}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &637318639
+MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 637318614}
   m_Enabled: 1
-  serializedVersion: 4
-  m_EnableCollision: 1
-  m_ConnectedRigidBody: {fileID: 0}
-  m_BreakForce: Infinity
-  m_BreakTorque: Infinity
-  m_BreakAction: 3
-  m_Anchor: {x: 0, y: 0}
-  m_Target: {x: -0.43240744, y: -0.25185186}
-  m_AutoConfigureTarget: 1
-  m_MaxForce: 10000
-  m_DampingRatio: 1
-  m_Frequency: 5
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 32f57030e3a252445859e998b3264bee, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Balance
+  targetRotation: 180
+  rb: {fileID: 637318619}
+  force: 45
 --- !u!1 &643471497
 GameObject:
   m_ObjectHideFlags: 0
@@ -10918,30 +10885,6 @@ Rigidbody2D:
   m_SleepingMode: 1
   m_CollisionDetection: 0
   m_Constraints: 0
---- !u!114 &703445942
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 703445933}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 32f57030e3a252445859e998b3264bee, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  rootRB: {fileID: 0}
-  leftFoot: {fileID: 0}
-  rightFoot: {fileID: 0}
-  standHeight: 2.5
-  uprightForce: 15
-  dampingForce: 10
-  rotationForce: 5
-  maxForce: 30
-  legGroundDist: 0.3
-  groundLayer:
-    serializedVersion: 2
-    m_Bits: 0
 --- !u!60 &703445952
 PolygonCollider2D:
   m_ObjectHideFlags: 0
@@ -10996,26 +10939,26 @@ PolygonCollider2D:
       - {x: 0.07685185, y: -0.02962963}
       - {x: 0.07685185, y: 0.048148148}
   m_UseDelaunayMesh: 0
---- !u!257 &703445955
-TargetJoint2D:
+--- !u!4 &703445957 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 5916611254628281766, guid: b11b1647264e9d84e8e9cd32a622579b, type: 3}
+  m_PrefabInstance: {fileID: 1990704995}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &703445958
+MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 703445933}
   m_Enabled: 1
-  serializedVersion: 4
-  m_EnableCollision: 1
-  m_ConnectedRigidBody: {fileID: 0}
-  m_BreakForce: Infinity
-  m_BreakTorque: Infinity
-  m_BreakAction: 3
-  m_Anchor: {x: 0, y: 0}
-  m_Target: {x: -0.43240744, y: -0.25185186}
-  m_AutoConfigureTarget: 1
-  m_MaxForce: 10000
-  m_DampingRatio: 1
-  m_Frequency: 5
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 32f57030e3a252445859e998b3264bee, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Balance
+  targetRotation: 180
+  rb: {fileID: 703445938}
+  force: 45
 --- !u!1 &708025811
 GameObject:
   m_ObjectHideFlags: 0
@@ -18332,18 +18275,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 32f57030e3a252445859e998b3264bee, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  rootRB: {fileID: 0}
-  leftFoot: {fileID: 0}
-  rightFoot: {fileID: 0}
-  standHeight: 2.5
-  uprightForce: 15
-  dampingForce: 10
-  rotationForce: 5
-  maxForce: 30
-  legGroundDist: 0.3
-  groundLayer:
-    serializedVersion: 2
-    m_Bits: 0
+  targetRotation: 0
+  rb: {fileID: 1144552179}
+  force: 45
 --- !u!4 &1144552189 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -4659248643398161119, guid: b11b1647264e9d84e8e9cd32a622579b, type: 3}
@@ -24090,30 +24024,6 @@ Rigidbody2D:
   m_SleepingMode: 1
   m_CollisionDetection: 0
   m_Constraints: 0
---- !u!114 &1562276881
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1562276872}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 32f57030e3a252445859e998b3264bee, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  rootRB: {fileID: 0}
-  leftFoot: {fileID: 0}
-  rightFoot: {fileID: 0}
-  standHeight: 2.5
-  uprightForce: 15
-  dampingForce: 10
-  rotationForce: 5
-  maxForce: 30
-  legGroundDist: 0.3
-  groundLayer:
-    serializedVersion: 2
-    m_Bits: 0
 --- !u!60 &1562276888
 PolygonCollider2D:
   m_ObjectHideFlags: 0
@@ -24179,6 +24089,26 @@ PolygonCollider2D:
       - {x: 0.053703703, y: -0.14074074}
       - {x: 0.07037037, y: -0.107407406}
   m_UseDelaunayMesh: 0
+--- !u!4 &1562276890 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 6353281157687337667, guid: b11b1647264e9d84e8e9cd32a622579b, type: 3}
+  m_PrefabInstance: {fileID: 1990704995}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1562276891
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1562276872}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 32f57030e3a252445859e998b3264bee, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Balance
+  targetRotation: 180
+  rb: {fileID: 1562276877}
+  force: 45
 --- !u!1 &1564956160
 GameObject:
   m_ObjectHideFlags: 0
@@ -27087,30 +27017,6 @@ Rigidbody2D:
   m_SleepingMode: 1
   m_CollisionDetection: 0
   m_Constraints: 0
---- !u!114 &1769990476
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1769990467}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 32f57030e3a252445859e998b3264bee, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  rootRB: {fileID: 0}
-  leftFoot: {fileID: 0}
-  rightFoot: {fileID: 0}
-  standHeight: 2.5
-  uprightForce: 15
-  dampingForce: 10
-  rotationForce: 5
-  maxForce: 30
-  legGroundDist: 0.3
-  groundLayer:
-    serializedVersion: 2
-    m_Bits: 0
 --- !u!60 &1769990483
 PolygonCollider2D:
   m_ObjectHideFlags: 0
@@ -27173,6 +27079,26 @@ PolygonCollider2D:
       - {x: 0.03611111, y: -0.10092592}
       - {x: 0.04537037, y: -0.05648148}
   m_UseDelaunayMesh: 0
+--- !u!4 &1769990485 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -3709621320507549336, guid: b11b1647264e9d84e8e9cd32a622579b, type: 3}
+  m_PrefabInstance: {fileID: 1990704995}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1769990486
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1769990467}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 32f57030e3a252445859e998b3264bee, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Balance
+  targetRotation: 180
+  rb: {fileID: 1769990472}
+  force: 45
 --- !u!1 &1778056148
 GameObject:
   m_ObjectHideFlags: 0
@@ -29618,44 +29544,48 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 2721ae0a360113b428c668c07adf85c5, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerController
   rb: {fileID: 1144552179}
   anim: {fileID: 1899122501}
   input: {fileID: 1899122503}
   groundCheck: {fileID: 344558585}
-  ikManager: {fileID: 0}
-  ikTargetLeft: {fileID: 0}
-  ikTargetRight: {fileID: 0}
-  leftFootRB: {fileID: 0}
-  rightFootRB: {fileID: 0}
-  leftFootTransform: {fileID: 0}
-  rightFootTransform: {fileID: 0}
-  leftFootCollider: {fileID: 0}
-  rightFootCollider: {fileID: 0}
-  torsoRootRB: {fileID: 0}
-  lowerBodyRB: {fileID: 0}
-  upperBodyRB: {fileID: 0}
-  headRB: {fileID: 0}
-  groundRadius: 0.4
+  leftFootRB: {fileID: 637318619}
+  rightFootRB: {fileID: 703445938}
+  leftFootTransform: {fileID: 637318638}
+  rightFootTransform: {fileID: 703445957}
+  leftFootCollider: {fileID: 637318633}
+  rightFootCollider: {fileID: 703445952}
+  torsoRootRB: {fileID: 1144552179}
+  lowerBodyRB: {fileID: 361667528}
+  upperBodyRB: {fileID: 1231099236}
+  headRB: {fileID: 1639074741}
+  groundRadius: 0.1
   groundLayer:
     serializedVersion: 2
     m_Bits: 8
   coyoteTime: 0.15
-  legGroundDist: 1
   initialJumpForce: 1000
   maxJumpForce: 3000
-  jumpForceInc: 500
-  ikTargetSpeed: 8
-  footSmoothTime: 0.12
-  ikTargetRadius: 0.1
-  footLiftHeight: 0.4
+  jumpForceInc: 1000
+  footForce: 50
+  footDamping: 8
   footGrabRadius: 0.4
-  bodyLeanForce: 8
-  bodyAnchorForce: 12
-  plantImpulse: 2
+  footMaxMouseSpeed: 8
+  footMaxDragSpeed: 8
+  footMaxDragDistance: 2.5
+  leftLeg1: {fileID: 1562276890}
+  leftLeg2: {fileID: 2064767945}
+  rightLeg1: {fileID: 482761674}
+  rightLeg2: {fileID: 1769990485}
+  bodyLinearDamping: 3
+  bodyAngularDamping: 3
   ragdollWait: 3
   jumpArrowPivot: {fileID: 1943808222}
   arrowSprite: {fileID: 506144022}
+  leftLeg1Bal: {fileID: 0}
+  leftLeg2Bal: {fileID: 0}
+  rightLeg1Bal: {fileID: 0}
+  rightLeg2Bal: {fileID: 0}
   currentJumpForce: 0
   jumpAimAngle: 0
   isGrounded: 0
@@ -29797,7 +29727,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8653719598885068355, guid: 8c9fcc05adccad444b484fababb34c6e, type: 3}
       propertyPath: m_IsActive
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -8247639944069391598, guid: 8c9fcc05adccad444b484fababb34c6e, type: 3}
       propertyPath: m_Layer
@@ -30939,7 +30869,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8653719598885068355, guid: b11b1647264e9d84e8e9cd32a622579b, type: 3}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: -8653719598885068355, guid: b11b1647264e9d84e8e9cd32a622579b, type: 3}
       propertyPath: m_TagString
@@ -31360,10 +31290,10 @@ PrefabInstance:
       addedObject: {fileID: 482761659}
     - targetCorrespondingSourceObject: {fileID: -8053845543056082882, guid: b11b1647264e9d84e8e9cd32a622579b, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 482761665}
+      addedObject: {fileID: 482761672}
     - targetCorrespondingSourceObject: {fileID: -8053845543056082882, guid: b11b1647264e9d84e8e9cd32a622579b, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 482761672}
+      addedObject: {fileID: 482761675}
     - targetCorrespondingSourceObject: {fileID: -2220129739281057994, guid: b11b1647264e9d84e8e9cd32a622579b, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1769990472}
@@ -31372,10 +31302,10 @@ PrefabInstance:
       addedObject: {fileID: 1769990470}
     - targetCorrespondingSourceObject: {fileID: -2220129739281057994, guid: b11b1647264e9d84e8e9cd32a622579b, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 1769990476}
+      addedObject: {fileID: 1769990483}
     - targetCorrespondingSourceObject: {fileID: -2220129739281057994, guid: b11b1647264e9d84e8e9cd32a622579b, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 1769990483}
+      addedObject: {fileID: 1769990486}
     - targetCorrespondingSourceObject: {fileID: -4296977920413028782, guid: b11b1647264e9d84e8e9cd32a622579b, type: 3}
       insertIndex: -1
       addedObject: {fileID: 703445938}
@@ -31384,13 +31314,10 @@ PrefabInstance:
       addedObject: {fileID: 703445936}
     - targetCorrespondingSourceObject: {fileID: -4296977920413028782, guid: b11b1647264e9d84e8e9cd32a622579b, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 703445942}
-    - targetCorrespondingSourceObject: {fileID: -4296977920413028782, guid: b11b1647264e9d84e8e9cd32a622579b, type: 3}
-      insertIndex: -1
       addedObject: {fileID: 703445952}
     - targetCorrespondingSourceObject: {fileID: -4296977920413028782, guid: b11b1647264e9d84e8e9cd32a622579b, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 703445955}
+      addedObject: {fileID: 703445958}
     - targetCorrespondingSourceObject: {fileID: 3456086564053892891, guid: b11b1647264e9d84e8e9cd32a622579b, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1231099236}
@@ -31444,10 +31371,10 @@ PrefabInstance:
       addedObject: {fileID: 1562276875}
     - targetCorrespondingSourceObject: {fileID: -4386875196621318505, guid: b11b1647264e9d84e8e9cd32a622579b, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 1562276881}
+      addedObject: {fileID: 1562276888}
     - targetCorrespondingSourceObject: {fileID: -4386875196621318505, guid: b11b1647264e9d84e8e9cd32a622579b, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 1562276888}
+      addedObject: {fileID: 1562276891}
     - targetCorrespondingSourceObject: {fileID: -8470053230590358827, guid: b11b1647264e9d84e8e9cd32a622579b, type: 3}
       insertIndex: -1
       addedObject: {fileID: 2064767932}
@@ -31456,10 +31383,10 @@ PrefabInstance:
       addedObject: {fileID: 2064767930}
     - targetCorrespondingSourceObject: {fileID: -8470053230590358827, guid: b11b1647264e9d84e8e9cd32a622579b, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 2064767936}
+      addedObject: {fileID: 2064767943}
     - targetCorrespondingSourceObject: {fileID: -8470053230590358827, guid: b11b1647264e9d84e8e9cd32a622579b, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 2064767943}
+      addedObject: {fileID: 2064767946}
     - targetCorrespondingSourceObject: {fileID: 5540147300687382220, guid: b11b1647264e9d84e8e9cd32a622579b, type: 3}
       insertIndex: -1
       addedObject: {fileID: 637318619}
@@ -31468,13 +31395,10 @@ PrefabInstance:
       addedObject: {fileID: 637318617}
     - targetCorrespondingSourceObject: {fileID: 5540147300687382220, guid: b11b1647264e9d84e8e9cd32a622579b, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 637318623}
-    - targetCorrespondingSourceObject: {fileID: 5540147300687382220, guid: b11b1647264e9d84e8e9cd32a622579b, type: 3}
-      insertIndex: -1
       addedObject: {fileID: 637318633}
     - targetCorrespondingSourceObject: {fileID: 5540147300687382220, guid: b11b1647264e9d84e8e9cd32a622579b, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 637318636}
+      addedObject: {fileID: 637318639}
   m_SourcePrefab: {fileID: 4843985084834002234, guid: b11b1647264e9d84e8e9cd32a622579b, type: 3}
 --- !u!1 &2014448249 stripped
 GameObject:
@@ -37696,30 +37620,6 @@ Rigidbody2D:
   m_SleepingMode: 1
   m_CollisionDetection: 0
   m_Constraints: 0
---- !u!114 &2064767936
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2064767927}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 32f57030e3a252445859e998b3264bee, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  rootRB: {fileID: 0}
-  leftFoot: {fileID: 0}
-  rightFoot: {fileID: 0}
-  standHeight: 2.5
-  uprightForce: 15
-  dampingForce: 10
-  rotationForce: 5
-  maxForce: 30
-  legGroundDist: 0.3
-  groundLayer:
-    serializedVersion: 2
-    m_Bits: 0
 --- !u!60 &2064767943
 PolygonCollider2D:
   m_ObjectHideFlags: 0
@@ -37783,6 +37683,26 @@ PolygonCollider2D:
       - {x: 0.026851851, y: -0.11574074}
       - {x: 0.03611111, y: -0.09537037}
   m_UseDelaunayMesh: 0
+--- !u!4 &2064767945 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 6117893423288423577, guid: b11b1647264e9d84e8e9cd32a622579b, type: 3}
+  m_PrefabInstance: {fileID: 1990704995}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &2064767946
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2064767927}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 32f57030e3a252445859e998b3264bee, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Balance
+  targetRotation: 180
+  rb: {fileID: 2064767932}
+  force: 45
 --- !u!1 &2076631952
 GameObject:
   m_ObjectHideFlags: 0
@@ -38943,6 +38863,8 @@ SceneRoots:
   m_ObjectHideFlags: 0
   m_Roots:
   - {fileID: 519420032}
+  - {fileID: 1990704995}
+  - {fileID: 359234454}
   - {fileID: 1906031330}
   - {fileID: 129713384}
   - {fileID: 787812819}
@@ -38957,5 +38879,3 @@ SceneRoots:
   - {fileID: 431025833}
   - {fileID: 524898111}
   - {fileID: 337390651}
-  - {fileID: 1990704995}
-  - {fileID: 359234454}

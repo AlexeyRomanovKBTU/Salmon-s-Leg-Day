@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEngine.U2D.IK;
 
 public class PlayerController : MonoBehaviour
 {
@@ -9,12 +8,7 @@ public class PlayerController : MonoBehaviour
     public PlayerInputHandler input;
     public Transform groundCheck;
 
-    [Header("IK")]
-    public IKManager2D ikManager;
-    public Transform ikTargetLeft;
-    public Transform ikTargetRight;
-
-    [Header("Leg Bones (for ground check + ragdoll)")]
+    [Header("Leg Bones")]
     public Rigidbody2D leftFootRB;
     public Rigidbody2D rightFootRB;
     public Transform leftFootTransform;
@@ -22,7 +16,7 @@ public class PlayerController : MonoBehaviour
     public Collider2D leftFootCollider;
     public Collider2D rightFootCollider;
 
-    [Header("Body Bones (for ragdoll)")]
+    [Header("Body Bones")]
     public Rigidbody2D torsoRootRB;
     public Rigidbody2D lowerBodyRB;
     public Rigidbody2D upperBodyRB;
@@ -32,7 +26,6 @@ public class PlayerController : MonoBehaviour
     public float groundRadius = 0.4f;
     public LayerMask groundLayer;
     public float coyoteTime = 0.15f;
-    public float legGroundDist = 0.2f;
 
     [Header("Jump Settings")]
     public float initialJumpForce = 1000f;
@@ -40,23 +33,29 @@ public class PlayerController : MonoBehaviour
     public float jumpForceInc = 1500f;
 
     [Header("Walk Settings")]
-    [Tooltip("Max speed cap for foot target movement (world units/sec)")]
-    public float ikTargetSpeed = 8f;
-    [Tooltip("Time in seconds for the foot to smoothly reach its target — lower = snappier")]
-    public float footSmoothTime = 0.12f;
-    [Tooltip("Radius of the CircleCast used to stop the IK target at obstacles. " +
-             "Match this to the radius of your foot CircleCollider2D.")]
-    public float ikTargetRadius = 0.1f;
-    [Tooltip("How high the foot lifts off the ground while being dragged")]
-    public float footLiftHeight = 0.4f;
-    [Tooltip("World-space grab radius around each foot — increase to make feet easier to click")]
-    public float footGrabRadius = 0.4f;
-    [Tooltip("Horizontal force pulling the torso toward the dragged foot")]
-    public float bodyLeanForce = 8f;
-    [Tooltip("Force pushing the torso back when it drifts further than one leg-length from the anchor foot")]
-    public float bodyAnchorForce = 12f;
-    [Tooltip("Impulse applied to the torso when a foot is planted — scales with step distance")]
-    public float plantImpulse = 2f;
+    public float footForce = 60f;
+    public float footDamping = 8f;
+    public float footGrabRadius = 0.6f;
+    [Tooltip("Max world-units/sec the drag target can chase the mouse — smooths out fast flicks")]
+    public float footMaxMouseSpeed = 8f;
+    [Tooltip("Max world-units/sec the foot itself can move while being dragged — prevents snap after unstick")]
+    public float footMaxDragSpeed = 8f;
+    [Tooltip("Max distance the active foot can be dragged from the anchor foot")]
+    public float footMaxDragDistance = 2.5f;
+
+    [Header("Leg Segment Transforms")]
+    [Tooltip("Assign Left_Leg_1_Layer and Left_Leg_2_Layer")]
+    public Transform leftLeg1;
+    public Transform leftLeg2;
+    [Tooltip("Assign Right_Leg_1_Layer and Right_Leg_2_Layer")]
+    public Transform rightLeg1;
+    public Transform rightLeg2;
+
+    [Header("Body Damping")]
+    [Tooltip("Linear drag on all body bones — higher values resist joint forces from leg drags")]
+    public float bodyLinearDamping  = 1f;
+    [Tooltip("Angular drag on all body bones — higher values reduce body spinning while walking")]
+    public float bodyAngularDamping = 1f;
 
     [Header("Ragdoll Settings")]
     public float ragdollWait = 3f;
@@ -64,6 +63,11 @@ public class PlayerController : MonoBehaviour
     [Header("Visuals")]
     public GameObject jumpArrowPivot;
     public SpriteRenderer arrowSprite;
+
+    [HideInInspector] public Balance leftLeg1Bal;
+    [HideInInspector] public Balance leftLeg2Bal;
+    [HideInInspector] public Balance rightLeg1Bal;
+    [HideInInspector] public Balance rightLeg2Bal;
 
     [HideInInspector] public float currentJumpForce;
     [HideInInspector] public float jumpAimAngle;
@@ -77,12 +81,22 @@ public class PlayerController : MonoBehaviour
 
     private void Awake()
     {
-        SetBodyBonesGravity(0f);
-        if (torsoRootRB != null)
+        SetBodyBonesGravity(1f);
+        if (leftFootRB  != null) { leftFootRB.bodyType  = RigidbodyType2D.Dynamic; leftFootRB.gravityScale  = 1f; }
+        if (rightFootRB != null) { rightFootRB.bodyType = RigidbodyType2D.Dynamic; rightFootRB.gravityScale = 1f; }
+
+        foreach (var b in new[] { torsoRootRB, lowerBodyRB, upperBodyRB, headRB })
         {
-            torsoRootRB.linearDamping  = 3f;
-            torsoRootRB.angularDamping = 3f;
+            if (b == null) continue;
+            b.linearDamping  = bodyLinearDamping;
+            b.angularDamping = bodyAngularDamping;
         }
+
+        if (leftLeg1)  leftLeg1Bal  = leftLeg1.GetComponent<Balance>();
+        if (leftLeg2)  leftLeg2Bal  = leftLeg2.GetComponent<Balance>();
+        if (rightLeg1) rightLeg1Bal = rightLeg1.GetComponent<Balance>();
+        if (rightLeg2) rightLeg2Bal = rightLeg2.GetComponent<Balance>();
+
         _states = new PlayerStateFactory(this);
         _currentState = _states.Idle();
         _currentState.EnterState();
@@ -107,6 +121,7 @@ public class PlayerController : MonoBehaviour
 
     public void SwitchState(PlayerBaseState newState)
     {
+        Debug.Log($"[StateMachine] {_currentState.GetType().Name} → {newState.GetType().Name}");
         _currentState.ExitState();
         _currentState = newState;
         _currentState.EnterState();
@@ -121,46 +136,18 @@ public class PlayerController : MonoBehaviour
         return Camera.main.ScreenToWorldPoint(p);
     }
 
-    public bool IsLegGrounded(Transform foot)
-    {
-        RaycastHit2D hit = Physics2D.Raycast(
-            foot.position, Vector2.down, legGroundDist, groundLayer);
-        return hit.collider != null;
-    }
-
-    public void EnableIK(bool enabled)
-    {
-        if (ikManager != null)
-            ikManager.enabled = enabled;
-    }
-
-    public void SetLegsPhysicsMode(RigidbodyType2D bodyType)
-    {
-        leftFootRB.bodyType  = bodyType;
-        rightFootRB.bodyType = bodyType;
-    }
-
     public void SetBodyBonesGravity(float scale)
     {
-        if (torsoRootRB != null)  torsoRootRB.gravityScale  = scale;
-        if (lowerBodyRB != null)  lowerBodyRB.gravityScale  = scale;
-        if (upperBodyRB != null)  upperBodyRB.gravityScale  = scale;
-        if (headRB != null)       headRB.gravityScale       = scale;
-    }
-
-    public void EnterRagdoll()
-    {
-        EnableIK(false);
-        SetLegsPhysicsMode(RigidbodyType2D.Dynamic);
-        SetBodyBonesGravity(1f);
+        if (torsoRootRB != null) torsoRootRB.gravityScale = scale;
+        if (lowerBodyRB != null) lowerBodyRB.gravityScale = scale;
+        if (upperBodyRB != null) upperBodyRB.gravityScale = scale;
+        if (headRB      != null) headRB.gravityScale      = scale;
     }
 
     public void ExitRagdoll()
     {
-        SetLegsPhysicsMode(RigidbodyType2D.Kinematic);
-        EnableIK(true);
-        SetBodyBonesGravity(0f);
         ZeroBodyVelocities();
+        ZeroLegVelocities();
     }
 
     private void ZeroBodyVelocities()
@@ -170,6 +157,53 @@ public class PlayerController : MonoBehaviour
             if (rb == null) continue;
             rb.linearVelocity  = Vector2.zero;
             rb.angularVelocity = 0f;
+        }
+    }
+
+    private void ZeroLegVelocities()
+    {
+        foreach (var rb in new[] { leftFootRB, rightFootRB })
+        {
+            if (rb == null) continue;
+            rb.linearVelocity  = Vector2.zero;
+            rb.angularVelocity = 0f;
+        }
+    }
+
+    public bool AreBothFeetGrounded() =>
+        Physics2D.OverlapCircle(leftFootTransform.position,  groundRadius, groundLayer) &&
+        Physics2D.OverlapCircle(rightFootTransform.position, groundRadius, groundLayer);
+
+    public void ResetAllLegBalance()
+    {
+        foreach (var t in new[] { leftLeg1, leftLeg2, rightLeg1, rightLeg2 })
+        {
+            if (t == null) continue;
+            var bal = t.GetComponent<Balance>();
+            bal?.ResetToUpright();
+        }
+    }
+
+    private void OnDrawGizmos()
+    {
+        if (groundCheck != null)
+        {
+            Gizmos.color = isGrounded ? Color.green : Color.red;
+            Gizmos.DrawWireSphere(groundCheck.position, groundRadius);
+        }
+
+        if (leftFootTransform != null)
+        {
+            bool leftGrounded = Physics2D.OverlapCircle(leftFootTransform.position, groundRadius, groundLayer);
+            Gizmos.color = leftGrounded ? Color.green : Color.red;
+            Gizmos.DrawWireSphere(leftFootTransform.position, groundRadius);
+        }
+
+        if (rightFootTransform != null)
+        {
+            bool rightGrounded = Physics2D.OverlapCircle(rightFootTransform.position, groundRadius, groundLayer);
+            Gizmos.color = rightGrounded ? Color.green : Color.red;
+            Gizmos.DrawWireSphere(rightFootTransform.position, groundRadius);
         }
     }
 }

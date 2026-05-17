@@ -2,155 +2,157 @@ using UnityEngine;
 
 public class PlayerWalkState : PlayerBaseState
 {
-    private Transform _activeTarget;
-    private Transform _anchorTarget;
-    private Transform _activeFootBone;
-    private Vector2   _desiredTargetPos;
-    private Vector2   _footVelocity;
-    private Vector2   _anchorWorldPos;
-    private float     _maxBodyDist;
-    private Vector2   _footGrabPos;
+    private Rigidbody2D _activeFootRB;
+    private Rigidbody2D _anchorFootRB;
+    private Balance     _legBal1;
+    private Balance     _legBal2;
+    private Vector2     _smoothedDragTarget;
+    private Vector2     _anchorLockedPos;
 
     public PlayerWalkState(PlayerController ctx, PlayerStateFactory factory) : base(ctx, factory) {}
 
-    public override void EnterState()
-    {
-        Ctx.ikTargetLeft.position  = Ctx.leftFootTransform.position;
-        Ctx.ikTargetRight.position = Ctx.rightFootTransform.position;
-        Ctx.SetLegsPhysicsMode(RigidbodyType2D.Kinematic);
-        Ctx.EnableIK(true);
-    }
+    public override void EnterState() { }
 
     public override void UpdateState()
     {
-        if (Ctx.input.IsClicking && _activeTarget == null)
+        if (_anchorFootRB != null && !Physics2D.OverlapCircle(_anchorLockedPos, Ctx.groundRadius, Ctx.groundLayer))
+        {
+            ReleaseFoot();
+            return;
+        }
+
+        if (Ctx.input.IsClicking && _activeFootRB == null)
             TryGrabFoot();
 
-        if (Ctx.input.IsClicking && _activeTarget != null)
-            UpdateDesiredPosition();
-
-        if (!Ctx.input.IsClicking && _activeTarget != null)
-            PlantFoot();
+        if (!Ctx.input.IsClicking && _activeFootRB != null)
+            ReleaseFoot();
     }
 
     public void FixedUpdateState()
     {
-        if (_activeTarget == null) return;
+        if (_activeFootRB == null) return;
 
-        MoveFoot();
-        PullBody();
-    }
+        // Rate-limit the drag target so fast mouse flicks can't spike joint forces.
+        _smoothedDragTarget = Vector2.MoveTowards(
+            _smoothedDragTarget,
+            Ctx.GetMouseWorldPos(),
+            Ctx.footMaxMouseSpeed * Time.fixedDeltaTime);
 
-    private void MoveFoot()
-    {
-        Vector2 currentPos = _activeTarget.position;
-        Vector2 moveDir    = _desiredTargetPos - currentPos;
-        float   moveDist   = moveDir.magnitude;
-
-        Vector2 safeTarget = _desiredTargetPos;
-        if (moveDist > 0.001f)
+        // Prevent splits — clamp drag target to max leg reach from anchor.
+        if (_anchorFootRB != null)
         {
-            RaycastHit2D hit = Physics2D.CircleCast(
-                currentPos, Ctx.ikTargetRadius,
-                moveDir.normalized, moveDist, Ctx.groundLayer);
-
-            if (hit.collider != null)
-            {
-                if (hit.distance > 0f)
-                    safeTarget = hit.centroid;
-                else if (Vector2.Dot(moveDir.normalized, hit.normal) < 0f)
-                    safeTarget = currentPos;
-            }
+            Vector2 fromAnchor = _smoothedDragTarget - _anchorLockedPos;
+            if (fromAnchor.magnitude > Ctx.footMaxDragDistance)
+                _smoothedDragTarget = _anchorLockedPos + fromAnchor.normalized * Ctx.footMaxDragDistance;
         }
 
-        _activeTarget.position = Vector2.SmoothDamp(
-            currentPos, safeTarget, ref _footVelocity,
-            Ctx.footSmoothTime, Ctx.ikTargetSpeed);
-    }
+        // Velocity-proportional drag toward the smoothed target (no spring oscillation).
+        Vector2 toTarget  = _smoothedDragTarget - _activeFootRB.position;
+        Vector2 targetVel = toTarget * Ctx.footForce;
 
-    private void PullBody()
-    {
-        Vector2 toFoot = _desiredTargetPos - (Vector2)Ctx.torsoRootRB.position;
-        Ctx.torsoRootRB.AddForce(toFoot * Ctx.bodyLeanForce);
+        float t = 1f - Mathf.Exp(-Ctx.footDamping * Time.fixedDeltaTime);
+        Vector2 newVel = Vector2.Lerp(_activeFootRB.linearVelocity, targetVel, t);
+
+        // Hard cap on foot speed — prevents the leg from snapping after being stuck.
+        _activeFootRB.linearVelocity  = Vector2.ClampMagnitude(newVel, Ctx.footMaxDragSpeed);
+        _activeFootRB.angularVelocity = Mathf.Lerp(_activeFootRB.angularVelocity, 0f, t);
+
+        if (_anchorFootRB != null)
+        {
+            _anchorFootRB.position        = _anchorLockedPos;
+            _anchorFootRB.linearVelocity  = Vector2.zero;
+            _anchorFootRB.angularVelocity = 0f;
+        }
     }
 
     private void TryGrabFoot()
     {
+        if (!Ctx.AreBothFeetGrounded()) return;
+
         Vector2 mousePos = Ctx.GetMouseWorldPos();
-        float   grab     = Ctx.footGrabRadius;
 
-        float distLeft  = Vector2.Distance(mousePos, (Vector2)Ctx.leftFootCollider.bounds.center);
-        float distRight = Vector2.Distance(mousePos, (Vector2)Ctx.rightFootCollider.bounds.center);
+        bool hitLeft  = Ctx.leftFootCollider.OverlapPoint(mousePos);
+        bool hitRight = Ctx.rightFootCollider.OverlapPoint(mousePos);
 
-        bool hitLeft  = distLeft  <= grab;
-        bool hitRight = distRight <= grab;
+        float distLeft  = Vector2.Distance(mousePos, Ctx.leftFootTransform.position);
+        float distRight = Vector2.Distance(mousePos, Ctx.rightFootTransform.position);
+
+        if (!hitLeft && !hitRight)
+        {
+            hitLeft  = distLeft  <= Ctx.footGrabRadius;
+            hitRight = distRight <= Ctx.footGrabRadius;
+        }
 
         if (!hitLeft && !hitRight) return;
 
         if (hitLeft && hitRight)
         {
-            if (distLeft <= distRight) hitRight = false;
-            else                       hitLeft  = false;
+            if (distLeft > distRight) hitLeft  = false;
+            else                      hitRight = false;
         }
 
-        Transform otherFoot = hitLeft ? Ctx.rightFootTransform : Ctx.leftFootTransform;
-        if (!Ctx.IsLegGrounded(otherFoot)) return;
+        _activeFootRB       = hitLeft ? Ctx.leftFootRB : Ctx.rightFootRB;
+        _smoothedDragTarget = _activeFootRB.position;
 
-        _activeTarget     = hitLeft ? Ctx.ikTargetLeft      : Ctx.ikTargetRight;
-        _anchorTarget     = hitLeft ? Ctx.ikTargetRight     : Ctx.ikTargetLeft;
-        _activeFootBone   = hitLeft ? Ctx.leftFootTransform : Ctx.rightFootTransform;
-        _desiredTargetPos = _activeTarget.position;
-        _footGrabPos      = _activeTarget.position;
-        _footVelocity     = Vector2.zero;
-        _anchorWorldPos   = _anchorTarget.position;
-        _maxBodyDist      = Vector2.Distance(Ctx.torsoRootRB.position, _anchorTarget.position);
-    }
-
-    private void UpdateDesiredPosition()
-    {
-        _desiredTargetPos = Ctx.GetMouseWorldPos();
-    }
-
-    private void PlantFoot()
-    {
-        if (_activeTarget != null)
+        // Pin the other foot so dragging one leg can't slide the whole body.
+        _anchorFootRB = hitLeft ? Ctx.rightFootRB : Ctx.leftFootRB;
+        if (_anchorFootRB != null)
         {
-            // Land on the ground beneath the current IK position, not the raw mouse position
-            Vector2 footPos = _activeTarget.position;
-            RaycastHit2D hit = Physics2D.Raycast(footPos + Vector2.up * 0.5f, Vector2.down, 2f, Ctx.groundLayer);
-            Vector2 plantPos = hit.collider != null ? hit.point : _desiredTargetPos;
-            _activeTarget.position = plantPos;
-
-            Vector2 step = new Vector2(plantPos.x - _footGrabPos.x, 0f);
-            Ctx.torsoRootRB.AddForce(step * Ctx.plantImpulse, ForceMode2D.Impulse);
+            _anchorLockedPos              = _anchorFootRB.position;
+            _anchorFootRB.linearVelocity  = Vector2.zero;
+            _anchorFootRB.angularVelocity = 0f;
+            _anchorFootRB.constraints     = RigidbodyConstraints2D.FreezeAll;
         }
-        _activeTarget   = null;
-        _anchorTarget   = null;
-        _activeFootBone = null;
-        _footVelocity   = Vector2.zero;
-        _anchorWorldPos = Vector2.zero;
-        _maxBodyDist    = 0f;
+
+        _legBal1 = hitLeft ? Ctx.leftLeg1Bal  : Ctx.rightLeg1Bal;
+        _legBal2 = hitLeft ? Ctx.leftLeg2Bal  : Ctx.rightLeg2Bal;
+        _legBal1?.Freeze();
+        _legBal2?.Freeze();
+    }
+
+    private void ReleaseFoot()
+    {
+        _activeFootRB.linearVelocity  = Vector2.zero;
+        _activeFootRB.angularVelocity = 0f;
+
+        _legBal1?.Freeze();
+        _legBal2?.Freeze();
+
+        if (_anchorFootRB != null)
+        {
+            _anchorFootRB.constraints = RigidbodyConstraints2D.None;
+            _anchorFootRB = null;
+        }
+
+        _activeFootRB = null;
+        _legBal1      = null;
+        _legBal2      = null;
     }
 
     public override void ExitState()
     {
-        _activeTarget   = null;
-        _anchorTarget   = null;
-        _activeFootBone = null;
-        _footVelocity   = Vector2.zero;
-        _anchorWorldPos = Vector2.zero;
-        _maxBodyDist    = 0f;
+        if (_activeFootRB != null) ReleaseFoot();
     }
 
     public override void CheckSwitchStates()
     {
         if (Ctx.input.RagdollTriggered)
         {
+            Ctx.input.ResetRagdollTrigger();
             Ctx.SwitchState(Factory.Ragdoll());
             return;
         }
 
-        if (!Ctx.input.IsClicking && _activeTarget == null)
+        if ((Ctx.input.IsHoldingJump || Ctx.input.JumpBuffered)
+            && _activeFootRB == null
+            && (Ctx.isGrounded || Ctx.coyoteCounter > 0))
+        {
+            Ctx.input.UseJumpBuffer();
+            Ctx.SwitchState(Factory.Jump());
+            return;
+        }
+
+        if (!Ctx.input.IsClicking && _activeFootRB == null)
             Ctx.SwitchState(Factory.Idle());
     }
 }
