@@ -10,9 +10,9 @@ public class PlayerStateFactory
     public PlayerStateFactory(PlayerController currentContext)
     {
         _context = currentContext;
-        _idle    = new PlayerIdleState(_context, this);
-        _walk    = new PlayerWalkState(_context, this);
-        _jump    = new PlayerJumpState(_context, this);
+        _idle = new PlayerIdleState(_context, this);
+        _walk = new PlayerWalkState(_context, this);
+        _jump = new PlayerJumpState(_context, this);
         _ragdoll = new PlayerRagdollState(_context, this);
     }
 

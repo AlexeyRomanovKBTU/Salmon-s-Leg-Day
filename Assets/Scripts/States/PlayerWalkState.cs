@@ -4,10 +4,10 @@ public class PlayerWalkState : PlayerBaseState
 {
     private Rigidbody2D _activeFootRB;
     private Rigidbody2D _anchorFootRB;
-    private Balance     _legBal1;
-    private Balance     _legBal2;
-    private Vector2     _smoothedDragTarget;
-    private Vector2     _anchorLockedPos;
+    private Balance _legBal1;
+    private Balance _legBal2;
+    private Vector2 _smoothedDragTarget;
+    private Vector2 _anchorLockedPos;
 
     public PlayerWalkState(PlayerController ctx, PlayerStateFactory factory) : base(ctx, factory) {}
 
@@ -32,13 +32,11 @@ public class PlayerWalkState : PlayerBaseState
     {
         if (_activeFootRB == null) return;
 
-        // Rate-limit the drag target so fast mouse flicks can't spike joint forces.
         _smoothedDragTarget = Vector2.MoveTowards(
             _smoothedDragTarget,
             Ctx.GetMouseWorldPos(),
             Ctx.footMaxMouseSpeed * Time.fixedDeltaTime);
 
-        // Prevent splits — clamp drag target to max leg reach from anchor.
         if (_anchorFootRB != null)
         {
             Vector2 fromAnchor = _smoothedDragTarget - _anchorLockedPos;
@@ -46,40 +44,41 @@ public class PlayerWalkState : PlayerBaseState
                 _smoothedDragTarget = _anchorLockedPos + fromAnchor.normalized * Ctx.footMaxDragDistance;
         }
 
-        // Velocity-proportional drag toward the smoothed target (no spring oscillation).
-        Vector2 toTarget  = _smoothedDragTarget - _activeFootRB.position;
+        Vector2 toTarget = _smoothedDragTarget - _activeFootRB.position;
         Vector2 targetVel = toTarget * Ctx.footForce;
 
         float t = 1f - Mathf.Exp(-Ctx.footDamping * Time.fixedDeltaTime);
         Vector2 newVel = Vector2.Lerp(_activeFootRB.linearVelocity, targetVel, t);
 
-        // Hard cap on foot speed — prevents the leg from snapping after being stuck.
-        _activeFootRB.linearVelocity  = Vector2.ClampMagnitude(newVel, Ctx.footMaxDragSpeed);
+        _activeFootRB.linearVelocity = Vector2.ClampMagnitude(newVel, Ctx.footMaxDragSpeed);
         _activeFootRB.angularVelocity = Mathf.Lerp(_activeFootRB.angularVelocity, 0f, t);
 
         if (_anchorFootRB != null)
         {
-            _anchorFootRB.position        = _anchorLockedPos;
-            _anchorFootRB.linearVelocity  = Vector2.zero;
+            _anchorFootRB.position = _anchorLockedPos;
+            _anchorFootRB.linearVelocity = Vector2.zero;
             _anchorFootRB.angularVelocity = 0f;
         }
     }
 
     private void TryGrabFoot()
     {
-        if (!Ctx.AreBothFeetGrounded()) return;
+        bool leftGrounded = Physics2D.OverlapCircle(Ctx.leftFootTransform.position, Ctx.groundRadius, Ctx.groundLayer);
+        bool rightGrounded = Physics2D.OverlapCircle(Ctx.rightFootTransform.position, Ctx.groundRadius, Ctx.groundLayer);
+
+        if (!leftGrounded && !rightGrounded) return;
 
         Vector2 mousePos = Ctx.GetMouseWorldPos();
 
-        bool hitLeft  = Ctx.leftFootCollider.OverlapPoint(mousePos);
+        bool hitLeft = Ctx.leftFootCollider.OverlapPoint(mousePos);
         bool hitRight = Ctx.rightFootCollider.OverlapPoint(mousePos);
 
-        float distLeft  = Vector2.Distance(mousePos, Ctx.leftFootTransform.position);
+        float distLeft = Vector2.Distance(mousePos, Ctx.leftFootTransform.position);
         float distRight = Vector2.Distance(mousePos, Ctx.rightFootTransform.position);
 
         if (!hitLeft && !hitRight)
         {
-            hitLeft  = distLeft  <= Ctx.footGrabRadius;
+            hitLeft = distLeft <= Ctx.footGrabRadius;
             hitRight = distRight <= Ctx.footGrabRadius;
         }
 
@@ -87,32 +86,34 @@ public class PlayerWalkState : PlayerBaseState
 
         if (hitLeft && hitRight)
         {
-            if (distLeft > distRight) hitLeft  = false;
-            else                      hitRight = false;
+            if (distLeft > distRight) hitLeft = false;
+            else hitRight = false;
         }
 
-        _activeFootRB       = hitLeft ? Ctx.leftFootRB : Ctx.rightFootRB;
+        if (hitLeft && leftGrounded && !rightGrounded) return;
+        if (hitRight && rightGrounded && !leftGrounded) return;
+
+        _activeFootRB = hitLeft ? Ctx.leftFootRB : Ctx.rightFootRB;
         _smoothedDragTarget = _activeFootRB.position;
 
-        // Pin the other foot so dragging one leg can't slide the whole body.
         _anchorFootRB = hitLeft ? Ctx.rightFootRB : Ctx.leftFootRB;
         if (_anchorFootRB != null)
         {
-            _anchorLockedPos              = _anchorFootRB.position;
-            _anchorFootRB.linearVelocity  = Vector2.zero;
+            _anchorLockedPos = _anchorFootRB.position;
+            _anchorFootRB.linearVelocity = Vector2.zero;
             _anchorFootRB.angularVelocity = 0f;
-            _anchorFootRB.constraints     = RigidbodyConstraints2D.FreezeAll;
+            _anchorFootRB.constraints = RigidbodyConstraints2D.FreezeAll;
         }
 
-        _legBal1 = hitLeft ? Ctx.leftLeg1Bal  : Ctx.rightLeg1Bal;
-        _legBal2 = hitLeft ? Ctx.leftLeg2Bal  : Ctx.rightLeg2Bal;
+        _legBal1 = hitLeft ? Ctx.leftLeg1Bal : Ctx.rightLeg1Bal;
+        _legBal2 = hitLeft ? Ctx.leftLeg2Bal : Ctx.rightLeg2Bal;
         _legBal1?.Freeze();
         _legBal2?.Freeze();
     }
 
     private void ReleaseFoot()
     {
-        _activeFootRB.linearVelocity  = Vector2.zero;
+        _activeFootRB.linearVelocity = Vector2.zero;
         _activeFootRB.angularVelocity = 0f;
 
         _legBal1?.Freeze();
@@ -125,8 +126,8 @@ public class PlayerWalkState : PlayerBaseState
         }
 
         _activeFootRB = null;
-        _legBal1      = null;
-        _legBal2      = null;
+        _legBal1 = null;
+        _legBal2 = null;
     }
 
     public override void ExitState()

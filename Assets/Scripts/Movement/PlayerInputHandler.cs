@@ -43,6 +43,21 @@ public class PlayerInputHandler : MonoBehaviour
             _jumpBufferCounter -= Time.deltaTime;
     }
 
-    public void UseJumpBuffer()        => _jumpBufferCounter = 0;
-    public void ResetRagdollTrigger()  => RagdollTriggered = false;
+    public bool PlaceCheckpointTriggered  { get; private set; }
+    public bool ReturnToCheckpointTriggered { get; private set; }
+
+    public void OnPlaceCheckpoint(InputAction.CallbackContext context)
+    {
+        if (context.started) PlaceCheckpointTriggered = true;
+    }
+
+    public void OnReturnToCheckpoint(InputAction.CallbackContext context)
+    {
+        if (context.started) ReturnToCheckpointTriggered = true;
+    }
+
+    public void UseJumpBuffer()                  => _jumpBufferCounter = 0;
+    public void ResetRagdollTrigger()            => RagdollTriggered = false;
+    public void ResetPlaceCheckpointTrigger()    => PlaceCheckpointTriggered = false;
+    public void ResetReturnToCheckpointTrigger() => ReturnToCheckpointTriggered = false;
 }

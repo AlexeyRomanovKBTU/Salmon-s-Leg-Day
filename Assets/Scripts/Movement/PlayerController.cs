@@ -53,7 +53,7 @@ public class PlayerController : MonoBehaviour
 
     [Header("Body Damping")]
     [Tooltip("Linear drag on all body bones — higher values resist joint forces from leg drags")]
-    public float bodyLinearDamping  = 1f;
+    public float bodyLinearDamping = 1f;
     [Tooltip("Angular drag on all body bones — higher values reduce body spinning while walking")]
     public float bodyAngularDamping = 1f;
 
@@ -76,34 +76,140 @@ public class PlayerController : MonoBehaviour
 
     private PlayerBaseState _currentState;
     private PlayerStateFactory _states;
+    private bool _suppressNextSave;
+    private Rigidbody2D[] _allBodies;
+    private Vector2[] _spawnPositions;
+    private float[] _spawnRotations;
+    private Vector2 _rbSpawnPos;
+    private Vector2[] _checkpointPositions;
+    private float[] _checkpointRotations;
+    private bool _hasCheckpoint;
 
     public PlayerBaseState CurrentState { get => _currentState; set => _currentState = value; }
 
     private void Awake()
     {
         SetBodyBonesGravity(1f);
-        if (leftFootRB  != null) { leftFootRB.bodyType  = RigidbodyType2D.Dynamic; leftFootRB.gravityScale  = 1f; }
+        if (leftFootRB != null) { leftFootRB.bodyType = RigidbodyType2D.Dynamic; leftFootRB.gravityScale = 1f; }
         if (rightFootRB != null) { rightFootRB.bodyType = RigidbodyType2D.Dynamic; rightFootRB.gravityScale = 1f; }
 
         foreach (var b in new[] { torsoRootRB, lowerBodyRB, upperBodyRB, headRB })
         {
             if (b == null) continue;
-            b.linearDamping  = bodyLinearDamping;
+            b.linearDamping = bodyLinearDamping;
             b.angularDamping = bodyAngularDamping;
         }
 
-        if (leftLeg1)  leftLeg1Bal  = leftLeg1.GetComponent<Balance>();
-        if (leftLeg2)  leftLeg2Bal  = leftLeg2.GetComponent<Balance>();
+        if (leftLeg1) leftLeg1Bal = leftLeg1.GetComponent<Balance>();
+        if (leftLeg2) leftLeg2Bal = leftLeg2.GetComponent<Balance>();
         if (rightLeg1) rightLeg1Bal = rightLeg1.GetComponent<Balance>();
         if (rightLeg2) rightLeg2Bal = rightLeg2.GetComponent<Balance>();
 
         _states = new PlayerStateFactory(this);
         _currentState = _states.Idle();
         _currentState.EnterState();
+
+        _allBodies = GetAllBodies();
+        _spawnPositions = new Vector2[_allBodies.Length];
+        _spawnRotations = new float[_allBodies.Length];
+        for (int i = 0; i < _allBodies.Length; i++)
+        {
+            _spawnPositions[i] = _allBodies[i].position;
+            _spawnRotations[i] = _allBodies[i].rotation;
+        }
+        _rbSpawnPos = rb.position;
+    }
+
+    private void Start()
+    {
+        SaveData data = SaveSystem.Load();
+        if (data != null && !data.completed)
+            StartCoroutine(TeleportAfterPhysicsInit(new Vector2(data.playerX, data.playerY)));
+    }
+
+    private System.Collections.IEnumerator TeleportAfterPhysicsInit(Vector2 savedPos)
+    {
+        Vector2 offset = savedPos - _rbSpawnPos;
+        var positions = new Vector2[_allBodies.Length];
+        var rotations = new float[_allBodies.Length];
+        for (int i = 0; i < _allBodies.Length; i++)
+        {
+            positions[i] = _spawnPositions[i] + offset;
+            rotations[i] = _spawnRotations[i];
+        }
+        yield return StartCoroutine(TeleportBodies(positions, rotations));
+    }
+
+    private System.Collections.IEnumerator TeleportBodies(Vector2[] positions, float[] rotations)
+    {
+        yield return new WaitForFixedUpdate();
+        for (int i = 0; i < _allBodies.Length; i++)
+        {
+            _allBodies[i].position = positions[i];
+            _allBodies[i].rotation = rotations[i];
+            _allBodies[i].linearVelocity = Vector2.zero;
+            _allBodies[i].angularVelocity = 0f;
+        }
+    }
+
+    public void PlaceCheckpoint()
+    {
+        _checkpointPositions = new Vector2[_allBodies.Length];
+        _checkpointRotations = new float[_allBodies.Length];
+        for (int i = 0; i < _allBodies.Length; i++)
+        {
+            _checkpointPositions[i] = _allBodies[i].position;
+            _checkpointRotations[i] = _allBodies[i].rotation;
+        }
+        _hasCheckpoint = true;
+    }
+
+    private void OnApplicationQuit()
+    {
+        if (_suppressNextSave) return;
+        SaveSystem.Save(new SaveData
+        {
+            playerX = rb.position.x,
+            playerY = rb.position.y,
+            completed = false
+        });
+    }
+
+    private Rigidbody2D[] GetAllBodies()
+    {
+        var set = new System.Collections.Generic.HashSet<Rigidbody2D>();
+        foreach (var body in GetComponentsInChildren<Rigidbody2D>(true))
+            set.Add(body);
+        foreach (var body in new[] { rb, torsoRootRB, lowerBodyRB, upperBodyRB, headRB, leftFootRB, rightFootRB })
+            if (body != null) set.Add(body);
+        foreach (var t in new[] { leftLeg1, leftLeg2, rightLeg1, rightLeg2 })
+        {
+            if (t == null) continue;
+            var legRb = t.GetComponent<Rigidbody2D>();
+            if (legRb != null) set.Add(legRb);
+        }
+        var arr = new Rigidbody2D[set.Count];
+        set.CopyTo(arr);
+        return arr;
     }
 
     private void Update()
     {
+        if (UnityEngine.InputSystem.Keyboard.current.f5Key.wasPressedThisFrame) SaveSystem.Save(new SaveData { playerX = rb.position.x, playerY = rb.position.y });
+        if (UnityEngine.InputSystem.Keyboard.current.f6Key.wasPressedThisFrame) { SaveSystem.Delete(); _suppressNextSave = true; }
+        if (UnityEngine.InputSystem.Keyboard.current.f7Key.wasPressedThisFrame) Debug.Log(Application.persistentDataPath + "/save.json");
+
+        if (input.PlaceCheckpointTriggered)
+        {
+            PlaceCheckpoint();
+            input.ResetPlaceCheckpointTrigger();
+        }
+        if (input.ReturnToCheckpointTriggered)
+        {
+            if (_hasCheckpoint) StartCoroutine(TeleportBodies(_checkpointPositions, _checkpointRotations));
+            input.ResetReturnToCheckpointTrigger();
+        }
+
         isGrounded = Physics2D.OverlapCircle(groundCheck.position, groundRadius, groundLayer);
 
         if (isGrounded) coyoteCounter = coyoteTime;
@@ -141,7 +247,7 @@ public class PlayerController : MonoBehaviour
         if (torsoRootRB != null) torsoRootRB.gravityScale = scale;
         if (lowerBodyRB != null) lowerBodyRB.gravityScale = scale;
         if (upperBodyRB != null) upperBodyRB.gravityScale = scale;
-        if (headRB      != null) headRB.gravityScale      = scale;
+        if (headRB != null) headRB.gravityScale = scale;
     }
 
     public void ExitRagdoll()
@@ -155,7 +261,7 @@ public class PlayerController : MonoBehaviour
         foreach (var rb in new[] { torsoRootRB, lowerBodyRB, upperBodyRB, headRB })
         {
             if (rb == null) continue;
-            rb.linearVelocity  = Vector2.zero;
+            rb.linearVelocity = Vector2.zero;
             rb.angularVelocity = 0f;
         }
     }
@@ -165,7 +271,7 @@ public class PlayerController : MonoBehaviour
         foreach (var rb in new[] { leftFootRB, rightFootRB })
         {
             if (rb == null) continue;
-            rb.linearVelocity  = Vector2.zero;
+            rb.linearVelocity = Vector2.zero;
             rb.angularVelocity = 0f;
         }
     }

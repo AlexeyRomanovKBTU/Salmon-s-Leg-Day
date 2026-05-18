@@ -15,7 +15,9 @@ public class ParticleController : MonoBehaviour
         {
             particleEffect.transform.SetParent(null);
             particleEffect.Play();
-            
+
+            SaveSystem.Save(new SaveData { completed = true });
+
             if (AudioManager.Instance != null)
             {
                 AudioManager.Instance.PlayEnding();
