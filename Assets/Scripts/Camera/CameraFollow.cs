@@ -21,4 +21,18 @@ public class CameraFollow : MonoBehaviour
         else
             transform.position = Vector3.Lerp(transform.position, desiredPosition, 1f - Mathf.Exp(-smoothSpeed * Time.deltaTime));
     }
+
+    private void OnDrawGizmos()
+    {
+        if (target == null) return;
+
+        Vector3 desiredPosition = target.position + offset;
+        desiredPosition.z = transform.position.z;
+
+        Gizmos.color = new Color(1f, 0.5f, 0f, 0.15f);
+        Gizmos.DrawSphere(desiredPosition, snapDistance);
+
+        Gizmos.color = new Color(1f, 0.5f, 0f, 1f);
+        Gizmos.DrawWireSphere(desiredPosition, snapDistance);
+    }
 }

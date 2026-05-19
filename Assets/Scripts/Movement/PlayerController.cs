@@ -110,13 +110,13 @@ public class PlayerController : MonoBehaviour
         if (rightLeg1) rightLeg1Bal = rightLeg1.GetComponent<Balance>();
         if (rightLeg2) rightLeg2Bal = rightLeg2.GetComponent<Balance>();
 
-        rb.interpolation = RigidbodyInterpolation2D.Interpolate;
-
         _states = new PlayerStateFactory(this);
         _currentState = _states.Idle();
         _currentState.EnterState();
 
         _allBodies = GetAllBodies();
+        foreach (var b in _allBodies)
+            b.interpolation = RigidbodyInterpolation2D.Interpolate;
         _spawnPositions = new Vector2[_allBodies.Length];
         _spawnRotations = new float[_allBodies.Length];
         for (int i = 0; i < _allBodies.Length; i++)

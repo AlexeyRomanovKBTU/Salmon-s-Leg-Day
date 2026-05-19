@@ -56,6 +56,16 @@ public class PlayerInputHandler : MonoBehaviour
         if (context.started) ReturnToCheckpointTriggered = true;
     }
 
+    public void OnQuit(InputAction.CallbackContext context)
+    {
+        if (!context.started) return;
+#if UNITY_EDITOR
+        UnityEditor.EditorApplication.isPlaying = false;
+#else
+        Application.Quit();
+#endif
+    }
+
     public void UseJumpBuffer()                  => _jumpBufferCounter = 0;
     public void ResetRagdollTrigger()            => RagdollTriggered = false;
     public void ResetPlaceCheckpointTrigger()    => PlaceCheckpointTriggered = false;

@@ -7923,8 +7923,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   target: {fileID: 1144552189}
-  smoothSpeed: 8
-  snapDistance: 8
+  smoothSpeed: 7
+  snapDistance: 4
   offset: {x: 0.5, y: 0.3, z: 0}
 --- !u!1 &522205139
 GameObject:
@@ -26193,6 +26193,22 @@ MonoBehaviour:
         m_CallState: 2
     m_ActionId: b9a3f322-db12-4fd2-9e28-e59e2958647f
     m_ActionName: 'Player/ReturnToCheckpoint[/Keyboard/x]'
+  - m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 1899122503}
+        m_TargetAssemblyTypeName: PlayerInputHandler, Assembly-CSharp
+        m_MethodName: OnQuit
+        m_Mode: 0
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+    m_ActionId: d945da67-6ee3-4c79-b89c-e4b53dd9034f
+    m_ActionName: 'Player/Quit[/Keyboard/escape]'
   m_NeverAutoSwitchControlSchemes: 0
   m_DefaultControlScheme: 
   m_DefaultActionMap: Player
