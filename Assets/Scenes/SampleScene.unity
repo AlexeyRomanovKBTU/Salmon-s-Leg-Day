@@ -3357,7 +3357,7 @@ GameObject:
   - component: {fileID: 211076838}
   - component: {fileID: 211076837}
   m_Layer: 5
-  m_Name: Text (TMP) (5)
+  m_Name: Thank_you_Message_Text
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -5466,37 +5466,6 @@ Transform:
   m_CorrespondingSourceObject: {fileID: -7552582706839291426, guid: 0cc99622b9927c4498e3e48c2f82b3fc, type: 3}
   m_PrefabInstance: {fileID: 212331247}
   m_PrefabAsset: {fileID: 0}
---- !u!1 &344558584
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 344558585}
-  m_Layer: 0
-  m_Name: PlayerToGround
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &344558585
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 344558584}
-  serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: -0.524, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 1144552189}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &346777406
 GameObject:
   m_ObjectHideFlags: 0
@@ -5751,7 +5720,7 @@ GameObject:
   - component: {fileID: 348958827}
   - component: {fileID: 348958826}
   m_Layer: 5
-  m_Name: Text (TMP) (1)
+  m_Name: Jumping_Tip_1_Text
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -6549,10 +6518,11 @@ RectTransform:
   m_Children:
   - {fileID: 1179100564}
   - {fileID: 348958825}
-  - {fileID: 566686774}
-  - {fileID: 211076836}
   - {fileID: 1584940676}
   - {fileID: 506047957}
+  - {fileID: 566686774}
+  - {fileID: 1614261188}
+  - {fileID: 211076836}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
@@ -6573,7 +6543,7 @@ GameObject:
   - component: {fileID: 435822381}
   - component: {fileID: 435822380}
   m_Layer: 0
-  m_Name: 3
+  m_Name: Tree_Layer
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -7453,7 +7423,7 @@ GameObject:
   - component: {fileID: 506047959}
   - component: {fileID: 506047958}
   m_Layer: 5
-  m_Name: Text (TMP) (3)
+  m_Name: Jumping_Tip_3_Text
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -7953,7 +7923,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   target: {fileID: 1144552189}
-  smoothSpeed: 0.125
+  smoothSpeed: 8
+  snapDistance: 8
   offset: {x: 0.5, y: 0.3, z: 0}
 --- !u!1 &522205139
 GameObject:
@@ -8244,7 +8215,7 @@ GameObject:
   - component: {fileID: 566686776}
   - component: {fileID: 566686775}
   m_Layer: 5
-  m_Name: Text (TMP) (4)
+  m_Name: Ragdoll_Tip_Text
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -13155,7 +13126,7 @@ GameObject:
   - component: {fileID: 904435769}
   - component: {fileID: 904435768}
   m_Layer: 0
-  m_Name: 1
+  m_Name: Cloud_Layer
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -16466,7 +16437,7 @@ GameObject:
   - component: {fileID: 1179100566}
   - component: {fileID: 1179100565}
   m_Layer: 5
-  m_Name: Text (TMP)
+  m_Name: Movement_Tip_Text
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -16511,7 +16482,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Press A or D to walk
+  m_text: Drag leg to make steps
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 07a5ae356ce8c204c8c93ae248deee40, type: 2}
   m_sharedMaterial: {fileID: 3569215760368967502, guid: 07a5ae356ce8c204c8c93ae248deee40, type: 2}
@@ -16860,8 +16831,8 @@ Transform:
   m_GameObject: {fileID: 1191690725}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0.17541073, w: 0.98449534}
-  m_LocalPosition: {x: 223.68, y: -59.29, z: 0}
-  m_LocalScale: {x: -0.5, y: 0.5, z: 0.5}
+  m_LocalPosition: {x: 221.4, y: -58.4, z: 0}
+  m_LocalScale: {x: -0.731338, y: 0.731338, z: 0.731338}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1023118508}
@@ -17418,7 +17389,7 @@ GameObject:
   - component: {fileID: 1228599017}
   - component: {fileID: 1228599016}
   m_Layer: 0
-  m_Name: 2
+  m_Name: Forest_Layer
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -21609,7 +21580,7 @@ GameObject:
   - component: {fileID: 1584940678}
   - component: {fileID: 1584940677}
   m_Layer: 5
-  m_Name: Text (TMP) (2)
+  m_Name: Jumping_Tip_2_Text
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -22014,6 +21985,145 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
+--- !u!1 &1614261187
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1614261188}
+  - component: {fileID: 1614261190}
+  - component: {fileID: 1614261189}
+  m_Layer: 5
+  m_Name: Checkpoint_Tip_Text
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &1614261188
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1614261187}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1.0004636, y: 1.0004636, z: 1.0004636}
+  m_ConstrainProportionsScale: 1
+  m_Children: []
+  m_Father: {fileID: 431025833}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0.5, y: 0.5}
+  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchoredPosition: {x: 1989, y: -202}
+  m_SizeDelta: {x: 300, y: 150}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &1614261189
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1614261187}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f4688fdb7df04437aeb418b961361dc5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_Material: {fileID: 0}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_RaycastTarget: 1
+  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+  m_Maskable: 1
+  m_OnCullStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  m_text: 'Press Z to set checkpoint
+
+    Press X to return to checkpoint'
+  m_isRightToLeft: 0
+  m_fontAsset: {fileID: 11400000, guid: 07a5ae356ce8c204c8c93ae248deee40, type: 2}
+  m_sharedMaterial: {fileID: 3569215760368967502, guid: 07a5ae356ce8c204c8c93ae248deee40, type: 2}
+  m_fontSharedMaterials: []
+  m_fontMaterial: {fileID: 0}
+  m_fontMaterials: []
+  m_fontColor32:
+    serializedVersion: 2
+    rgba: 4294967295
+  m_fontColor: {r: 1, g: 1, b: 1, a: 1}
+  m_enableVertexGradient: 0
+  m_colorMode: 3
+  m_fontColorGradient:
+    topLeft: {r: 1, g: 1, b: 1, a: 1}
+    topRight: {r: 1, g: 1, b: 1, a: 1}
+    bottomLeft: {r: 1, g: 1, b: 1, a: 1}
+    bottomRight: {r: 1, g: 1, b: 1, a: 1}
+  m_fontColorGradientPreset: {fileID: 0}
+  m_spriteAsset: {fileID: 0}
+  m_tintAllSprites: 0
+  m_StyleSheet: {fileID: 0}
+  m_TextStyleHashCode: -1183493901
+  m_overrideHtmlColors: 0
+  m_faceColor:
+    serializedVersion: 2
+    rgba: 4294967295
+  m_fontSize: 36
+  m_fontSizeBase: 36
+  m_fontWeight: 400
+  m_enableAutoSizing: 0
+  m_fontSizeMin: 18
+  m_fontSizeMax: 72
+  m_fontStyle: 0
+  m_HorizontalAlignment: 2
+  m_VerticalAlignment: 512
+  m_textAlignment: 65535
+  m_characterSpacing: 0
+  m_characterHorizontalScale: 1
+  m_wordSpacing: 0
+  m_lineSpacing: 0
+  m_lineSpacingMax: 0
+  m_paragraphSpacing: 0
+  m_charWidthMaxAdj: 0
+  m_TextWrappingMode: 1
+  m_wordWrappingRatios: 0.4
+  m_overflowMode: 0
+  m_linkedTextComponent: {fileID: 0}
+  parentLinkedComponent: {fileID: 0}
+  m_enableKerning: 1
+  m_ActiveFontFeatures: 6e72656b
+  m_enableExtraPadding: 0
+  checkPaddingRequired: 0
+  m_isRichText: 1
+  m_EmojiFallbackSupport: 1
+  m_parseCtrlCharacters: 1
+  m_isOrthographic: 1
+  m_isCullingEnabled: 0
+  m_horizontalMapping: 0
+  m_verticalMapping: 0
+  m_uvLineOffset: 0
+  m_geometrySortingOrder: 0
+  m_IsTextObjectScaleStatic: 0
+  m_VertexBufferAutoSizeReduction: 0
+  m_useMaxVisibleDescender: 1
+  m_pageToDisplay: 1
+  m_margin: {x: -196.30046, y: 0, z: 0, w: 0}
+  m_isUsingLegacyAnimationComponent: 0
+  m_isVolumetricText: 0
+  m_hasFontAssetChanged: 0
+  m_baseMaterial: {fileID: 0}
+  m_maskOffset: {x: 0, y: 0, z: 0, w: 0}
+--- !u!222 &1614261190
+CanvasRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1614261187}
+  m_CullTransparentMesh: 1
 --- !u!1 &1614331871
 GameObject:
   m_ObjectHideFlags: 0
@@ -24654,8 +24764,8 @@ Transform:
   m_GameObject: {fileID: 1860260113}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: 0.09049312, w: 0.9958971}
-  m_LocalPosition: {x: 196.55, y: -64.36, z: 0}
-  m_LocalScale: {x: 0.5, y: 0.5, z: 0.5}
+  m_LocalPosition: {x: 197.71, y: -65.63, z: 0}
+  m_LocalScale: {x: 0.78725, y: 0.78725, z: 0.78725}
   m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 1023118508}
@@ -25892,7 +26002,6 @@ MonoBehaviour:
   rb: {fileID: 1144552179}
   anim: {fileID: 1899122501}
   input: {fileID: 1899122503}
-  groundCheck: {fileID: 344558585}
   leftFootRB: {fileID: 637318619}
   rightFootRB: {fileID: 703445938}
   leftFootTransform: {fileID: 637318638}
@@ -26758,7 +26867,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: -8653719598885068355, guid: b11b1647264e9d84e8e9cd32a622579b, type: 3}
       propertyPath: m_Name
-      value: Salmon_w_Legs
+      value: Salmon
       objectReference: {fileID: 0}
     - target: {fileID: -8653719598885068355, guid: b11b1647264e9d84e8e9cd32a622579b, type: 3}
       propertyPath: m_Layer
@@ -27151,9 +27260,6 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects:
-    - targetCorrespondingSourceObject: {fileID: -4659248643398161119, guid: b11b1647264e9d84e8e9cd32a622579b, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 344558585}
     - targetCorrespondingSourceObject: {fileID: -4659248643398161119, guid: b11b1647264e9d84e8e9cd32a622579b, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1943808223}

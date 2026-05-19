@@ -13,7 +13,9 @@ public class ParticleController : MonoBehaviour
     {
         if (other.CompareTag("Player"))
         {
-            particleEffect.transform.SetParent(null);
+            particleEffect.transform.SetParent(Camera.main.transform);
+            var main = particleEffect.main;
+            main.simulationSpace = ParticleSystemSimulationSpace.Local;
             particleEffect.Play();
 
             SaveSystem.Save(new SaveData { completed = true });

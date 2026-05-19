@@ -6,8 +6,6 @@ public class PlayerController : MonoBehaviour
     public Rigidbody2D rb;
     public Animator anim;
     public PlayerInputHandler input;
-    public Transform groundCheck;
-
     [Header("Leg Bones")]
     public Rigidbody2D leftFootRB;
     public Rigidbody2D rightFootRB;
@@ -84,16 +82,23 @@ public class PlayerController : MonoBehaviour
     private Vector2[] _checkpointPositions;
     private float[] _checkpointRotations;
     private bool _hasCheckpoint;
+    private Camera _cam;
+    private Rigidbody2D[] _bodyBones;
+    private Rigidbody2D[] _footBones;
 
     public PlayerBaseState CurrentState { get => _currentState; set => _currentState = value; }
 
     private void Awake()
     {
+        _cam = Camera.main;
+        _bodyBones = new[] { torsoRootRB, lowerBodyRB, upperBodyRB, headRB };
+        _footBones = new[] { leftFootRB, rightFootRB };
+
         SetBodyBonesGravity(1f);
         if (leftFootRB != null) { leftFootRB.bodyType = RigidbodyType2D.Dynamic; leftFootRB.gravityScale = 1f; }
         if (rightFootRB != null) { rightFootRB.bodyType = RigidbodyType2D.Dynamic; rightFootRB.gravityScale = 1f; }
 
-        foreach (var b in new[] { torsoRootRB, lowerBodyRB, upperBodyRB, headRB })
+        foreach (var b in _bodyBones)
         {
             if (b == null) continue;
             b.linearDamping = bodyLinearDamping;
@@ -104,6 +109,8 @@ public class PlayerController : MonoBehaviour
         if (leftLeg2) leftLeg2Bal = leftLeg2.GetComponent<Balance>();
         if (rightLeg1) rightLeg1Bal = rightLeg1.GetComponent<Balance>();
         if (rightLeg2) rightLeg2Bal = rightLeg2.GetComponent<Balance>();
+
+        rb.interpolation = RigidbodyInterpolation2D.Interpolate;
 
         _states = new PlayerStateFactory(this);
         _currentState = _states.Idle();
@@ -123,8 +130,24 @@ public class PlayerController : MonoBehaviour
     private void Start()
     {
         SaveData data = SaveSystem.Load();
-        if (data != null && !data.completed)
+        if (data == null || data.completed) return;
+
+        if (data.bodyPosX != null && data.bodyPosX.Length == _allBodies.Length)
+            StartCoroutine(RestoreFullState(data));
+        else
             StartCoroutine(TeleportAfterPhysicsInit(new Vector2(data.playerX, data.playerY)));
+    }
+
+    private System.Collections.IEnumerator RestoreFullState(SaveData data)
+    {
+        var positions = new Vector2[_allBodies.Length];
+        var rotations = new float[_allBodies.Length];
+        for (int i = 0; i < _allBodies.Length; i++)
+        {
+            positions[i] = new Vector2(data.bodyPosX[i], data.bodyPosY[i]);
+            rotations[i] = data.bodyRot[i];
+        }
+        yield return StartCoroutine(TeleportBodies(positions, rotations));
     }
 
     private System.Collections.IEnumerator TeleportAfterPhysicsInit(Vector2 savedPos)
@@ -164,15 +187,32 @@ public class PlayerController : MonoBehaviour
         _hasCheckpoint = true;
     }
 
+    private SaveData BuildSaveData()
+    {
+        var posX = new float[_allBodies.Length];
+        var posY = new float[_allBodies.Length];
+        var rot  = new float[_allBodies.Length];
+        for (int i = 0; i < _allBodies.Length; i++)
+        {
+            posX[i] = _allBodies[i].position.x;
+            posY[i] = _allBodies[i].position.y;
+            rot[i]  = _allBodies[i].rotation;
+        }
+        return new SaveData
+        {
+            playerX  = rb.position.x,
+            playerY  = rb.position.y,
+            completed = false,
+            bodyPosX = posX,
+            bodyPosY = posY,
+            bodyRot  = rot
+        };
+    }
+
     private void OnApplicationQuit()
     {
         if (_suppressNextSave) return;
-        SaveSystem.Save(new SaveData
-        {
-            playerX = rb.position.x,
-            playerY = rb.position.y,
-            completed = false
-        });
+        SaveSystem.Save(BuildSaveData());
     }
 
     private Rigidbody2D[] GetAllBodies()
@@ -195,7 +235,7 @@ public class PlayerController : MonoBehaviour
 
     private void Update()
     {
-        if (UnityEngine.InputSystem.Keyboard.current.f5Key.wasPressedThisFrame) SaveSystem.Save(new SaveData { playerX = rb.position.x, playerY = rb.position.y });
+        if (UnityEngine.InputSystem.Keyboard.current.f5Key.wasPressedThisFrame) SaveSystem.Save(BuildSaveData());
         if (UnityEngine.InputSystem.Keyboard.current.f6Key.wasPressedThisFrame) { SaveSystem.Delete(); _suppressNextSave = true; }
         if (UnityEngine.InputSystem.Keyboard.current.f7Key.wasPressedThisFrame) Debug.Log(Application.persistentDataPath + "/save.json");
 
@@ -210,7 +250,8 @@ public class PlayerController : MonoBehaviour
             input.ResetReturnToCheckpointTrigger();
         }
 
-        isGrounded = Physics2D.OverlapCircle(groundCheck.position, groundRadius, groundLayer);
+        isGrounded = Physics2D.OverlapCircle(leftFootTransform.position, groundRadius, groundLayer)
+                  || Physics2D.OverlapCircle(rightFootTransform.position, groundRadius, groundLayer);
 
         if (isGrounded) coyoteCounter = coyoteTime;
         else coyoteCounter -= Time.deltaTime;
@@ -227,7 +268,9 @@ public class PlayerController : MonoBehaviour
 
     public void SwitchState(PlayerBaseState newState)
     {
+#if UNITY_EDITOR
         Debug.Log($"[StateMachine] {_currentState.GetType().Name} → {newState.GetType().Name}");
+#endif
         _currentState.ExitState();
         _currentState = newState;
         _currentState.EnterState();
@@ -238,16 +281,15 @@ public class PlayerController : MonoBehaviour
         Vector3 p = new Vector3(
             input.MousePosition.x,
             input.MousePosition.y,
-            Mathf.Abs(Camera.main.transform.position.z));
-        return Camera.main.ScreenToWorldPoint(p);
+            Mathf.Abs(_cam.transform.position.z));
+        return _cam.ScreenToWorldPoint(p);
     }
 
     public void SetBodyBonesGravity(float scale)
     {
-        if (torsoRootRB != null) torsoRootRB.gravityScale = scale;
-        if (lowerBodyRB != null) lowerBodyRB.gravityScale = scale;
-        if (upperBodyRB != null) upperBodyRB.gravityScale = scale;
-        if (headRB != null) headRB.gravityScale = scale;
+        if (_bodyBones == null) return;
+        foreach (var b in _bodyBones)
+            if (b != null) b.gravityScale = scale;
     }
 
     public void ExitRagdoll()
@@ -258,7 +300,7 @@ public class PlayerController : MonoBehaviour
 
     private void ZeroBodyVelocities()
     {
-        foreach (var rb in new[] { torsoRootRB, lowerBodyRB, upperBodyRB, headRB })
+        foreach (var rb in _bodyBones)
         {
             if (rb == null) continue;
             rb.linearVelocity = Vector2.zero;
@@ -268,7 +310,7 @@ public class PlayerController : MonoBehaviour
 
     private void ZeroLegVelocities()
     {
-        foreach (var rb in new[] { leftFootRB, rightFootRB })
+        foreach (var rb in _footBones)
         {
             if (rb == null) continue;
             rb.linearVelocity = Vector2.zero;
@@ -282,22 +324,14 @@ public class PlayerController : MonoBehaviour
 
     public void ResetAllLegBalance()
     {
-        foreach (var t in new[] { leftLeg1, leftLeg2, rightLeg1, rightLeg2 })
-        {
-            if (t == null) continue;
-            var bal = t.GetComponent<Balance>();
-            bal?.ResetToUpright();
-        }
+        leftLeg1Bal?.ResetToUpright();
+        leftLeg2Bal?.ResetToUpright();
+        rightLeg1Bal?.ResetToUpright();
+        rightLeg2Bal?.ResetToUpright();
     }
 
     private void OnDrawGizmos()
     {
-        if (groundCheck != null)
-        {
-            Gizmos.color = isGrounded ? Color.green : Color.red;
-            Gizmos.DrawWireSphere(groundCheck.position, groundRadius);
-        }
-
         if (leftFootTransform != null)
         {
             bool leftGrounded = Physics2D.OverlapCircle(leftFootTransform.position, groundRadius, groundLayer);

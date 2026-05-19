@@ -8,27 +8,30 @@ public class ParallaxController : MonoBehaviour
 
     Material[] mat;
     float[] backSpeed;
+    int _backCount;
 
     float farthestBack;
 
     [Range(0.01f, 0.5f)]
     public float parallaxSpeed;
 
+    private static readonly int MainTexID = Shader.PropertyToID("_MainTex");
+
     void Start()
     {
         cam = Camera.main.transform;
         camStartPos = cam.position;
 
-        int backCount = transform.childCount;
-        mat = new Material[backCount];
-        backSpeed = new float[backCount];
+        _backCount = transform.childCount;
+        mat = new Material[_backCount];
+        backSpeed = new float[_backCount];
 
-        for(int i = 0; i < backCount; i++)
+        for(int i = 0; i < _backCount; i++)
         {
             mat[i] = transform.GetChild(i).GetComponent<Renderer>().material;
         }
 
-        BackSpeedCalculate(backCount);
+        BackSpeedCalculate(_backCount);
     }
 
     void BackSpeedCalculate(int backCount)
@@ -51,10 +54,9 @@ public class ParallaxController : MonoBehaviour
     {
         distance = cam.position.x - camStartPos.x;
 
-        for(int i = 0; i < transform.childCount; i++)
+        for(int i = 0; i < _backCount; i++)
         {
-            float speed = backSpeed[i] * parallaxSpeed;
-            mat[i].SetTextureOffset("_MainTex", new Vector2(distance, 0) * speed);
+            mat[i].SetTextureOffset(MainTexID, Vector2.right * (distance * backSpeed[i] * parallaxSpeed));
         }
     }
 }

@@ -21,21 +21,16 @@ public class PlayerRagdollState : PlayerBaseState
     public override void UpdateState()
     {
         _settleTimer -= Time.deltaTime;
-        Debug.Log($"[Ragdoll] timer: {_settleTimer:F2}");
     }
 
     public override void ExitState()
     {
-        Debug.Log("[Ragdoll] ExitState called");
         Ctx.ExitRagdoll();
     }
 
     public override void CheckSwitchStates()
     {
         if (_settleTimer <= 0)
-        {
-            Debug.Log("[Ragdoll] Switching to Idle");
             Ctx.SwitchState(Factory.Idle());
-        }
     }
 }
